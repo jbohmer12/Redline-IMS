@@ -3095,11 +3095,6 @@ async function aiLookupPart() {
   }
 
   // ── Not in inventory — call API ──────────────────────────────────
-  const apiKey = ANTHROPIC_API_KEY || document.getElementById('api-key-input').value.trim() || localStorage.getItem('rm_apikey') || '';
-  if (!apiKey) {
-    setAiStatus('error', '⚠ AI lookup unavailable — contact your administrator.');
-    return;
-  }
 
   btn.disabled = true;
   btn.textContent = '⏳ LOOKING UP...';
@@ -3113,17 +3108,15 @@ async function aiLookupPart() {
 {"name":"","category":"Engine|Suspension|Brakes|Electrical|Body/Fairings|Exhaust|Drivetrain|Frame/Chassis|Accessories|Other","make":"","model":"","year":"","price_usd":0,"notes":"","confidence":"high|medium|low"}`;
 
   try {
-    const data = await fetchWithRetry(apiKey, {
-      model: 'claude-sonnet-4-5-20250929',
-      max_tokens: 1000,
-      tools: [{ type: 'web_search_20250305', name: 'web_search' }],
-      messages: [{ role: 'user', content: prompt }]
-    }, setAiStatus);
+    const res = await fetch('/.netlify/functions/ai-lookup', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ oem: oemList, isAssembly })
+    });
+    const part = await res.json();
+    if (!res.ok || part.error) throw new Error(part.error || 'Lookup failed');
 
-    const text = data.content.filter(b => b.type === 'text').map(b => b.text).join('');
-    const jsonMatch = text.replace(/```json|```/g, '').match(/\{[\s\S]*\}/);
-    if (!jsonMatch) throw new Error('No JSON in response');
-    const part = JSON.parse(jsonMatch[0]);
+    // part is already parsed JSON from the server
 
     const fill = (id, val) => { if (val && !document.getElementById(id).value) document.getElementById(id).value = val; };
     fill('f-name', part.name);
