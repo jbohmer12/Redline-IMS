@@ -456,12 +456,22 @@
   .form-group { display: flex; flex-direction: column; gap: 5px; }
 
   label {
-    font-family: var(--font-display), sans-serif;
+    font-family: var(--font-sub), sans-serif;
     font-size: 10px;
     letter-spacing: 2px;
     text-transform: uppercase;
     color: var(--muted);
     font-weight: 700;
+  }
+
+  input, select, textarea {
+    font-family: var(--font-display);
+  }
+
+  ::placeholder {
+    font-family: var(--font-display);
+    font-weight: 400;
+    opacity: 0.5;
   }
 
   input[type="text"], input[type="number"], select, textarea {
@@ -1205,31 +1215,14 @@
       </div>
 
       <!-- AI SETTINGS -->
-      <div id="ai-settings-bar" style="margin-bottom:16px;">
-        <div onclick="toggleAiSettings()" style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;padding:9px 14px;background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--accent);user-select:none;">
-          <span style="font-family:var(--font-display),sans-serif;font-size:14px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:var(--muted);">⚡ AI Settings</span>
-          <span id="ai-settings-arrow" style="color:var(--muted);font-size:12px;">▼</span>
-        </div>
-        <div id="ai-settings-panel" style="display:none;padding:14px;background:#0d0d0d;border:1px solid var(--border);border-top:none;">
-          <div class="form-group">
-            <label>Anthropic API Key</label>
-            <input type="password" id="api-key-input" placeholder="sk-ant-..." autocomplete="off"
-              style="font-family:monospace;font-size:13px;"
-              oninput="localStorage.setItem('rm_apikey', this.value); updateAiKeyStatus()">
-          </div>
-          <div id="ai-key-status" style="margin-top:8px;font-family:var(--font-display),sans-serif;font-size:11px;letter-spacing:1px;"></div>
-          <div style="margin-top:8px;font-size:11px;color:var(--muted);font-family:var(--font-display),sans-serif;letter-spacing:0.5px;">
-            Key is saved locally on this device only. Get yours at <span style="color:var(--accent-bright);">console.anthropic.com</span>
-          </div>
-        </div>
-      </div>
+
 
 
       <div class="form-grid">
 
         <div class="form-group form-full">
           <label>Part Name <span style="color:var(--accent);">*</span></label>
-          <input type="text" id="f-name" placeholder="e.g. Front Brake Caliper" autocomplete="off" style="font-size:16px;">
+          <input type="text" id="f-name" placeholder="e.g. Front Brake Caliper" autocomplete="off" style="font-size:16px;font-family:var(--font-display);">
         </div>
 
         <div class="form-group form-full">
@@ -3104,7 +3097,7 @@ async function aiLookupPart() {
   // ── Not in inventory — call API ──────────────────────────────────
   const apiKey = ANTHROPIC_API_KEY || document.getElementById('api-key-input').value.trim() || localStorage.getItem('rm_apikey') || '';
   if (!apiKey) {
-    setAiStatus('error', '⚠ Add your Anthropic API key in AI Settings above.');
+    setAiStatus('error', '⚠ AI lookup unavailable — contact your administrator.');
     return;
   }
 
