@@ -1,0 +1,4612 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Redline IMS</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Roboto+Condensed:ital,wght@0,400;0,700;1,400;1,700&family=Roboto:wght@300;400;500&display=swap');
+
+  @font-face {
+    font-family: 'Novalion';
+    src: url('/fonts/Novalion-VF.ttf') format('truetype');
+    font-weight: 100 900;
+    font-style: normal;
+  }
+  @font-face {
+    font-family: 'Underdog';
+    src: url('/fonts/Underdog.otf') format('opentype');
+    font-weight: 400;
+    font-style: normal;
+  }
+
+  :root {
+    --bg:           #0f0f0f;
+    --surface:      #161616;
+    --surface2:     #1f1f1f;
+    --border:       #2e2e2e;
+    --accent:       #EE3B3B;
+    --accent-bright:#ff5555;
+    --accent2:      #cc2222;
+    --text:         #DEDEDC;
+    --muted:        #666666;
+    --green:        #22cc66;
+    --red:          #EE3B3B;
+    --stripe:       rgba(238,59,59,0.04);
+    --primary:      #DEDEDC;
+    --secondary:    #272727;
+    --font-display: 'Novalion', var(--font-display), sans-serif;
+    --font-sub:     'Underdog', Georgia, serif;
+    --font-body:    'Roboto', sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-body);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Diagonal speed-stripe texture */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: repeating-linear-gradient(
+      -55deg,
+      transparent,
+      transparent 40px,
+      var(--stripe) 40px,
+      var(--stripe) 41px
+    );
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* ===== HEADER ===== */
+  header {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: #000;
+    border-bottom: 3px solid var(--accent);
+    padding: 0 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 64px;
+    box-shadow: 0 2px 20px rgba(238,59,59,0.2);
+  }
+
+  .logo {
+    display: flex;
+    flex-direction: column;
+    line-height: 1;
+  }
+
+  .logo-top {
+    font-family: var(--font-display), sans-serif;
+    font-weight: 700;
+    font-size: 11px;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .logo-main {
+    font-family: var(--font-display), sans-serif;
+    font-weight: 700;
+    font-size: 26px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: #fff;
+    line-height: 1;
+  }
+
+  .logo-main span {
+    color: var(--accent-bright);
+  }
+
+  .logo-sub {
+    font-family: var(--font-display), sans-serif;
+    font-weight: 700;
+    font-size: 9px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--muted);
+    font-style: italic;
+  }
+
+  .header-stats {
+    display: flex;
+    gap: 20px;
+    font-family: var(--font-display), sans-serif;
+    font-size: 13px;
+    letter-spacing: 1px;
+    color: var(--muted);
+    text-transform: uppercase;
+  }
+
+  .header-stat {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    line-height: 1.1;
+  }
+
+  .header-stats strong {
+    color: var(--accent-bright);
+    font-size: 22px;
+    font-weight: 700;
+    display: block;
+  }
+
+  /* ===== NAV TABS ===== */
+  .nav-tabs {
+    display: flex;
+    gap: 0;
+    background: #0d0d0d;
+    border-bottom: 1px solid var(--border);
+    position: relative;
+    z-index: 99;
+    padding: 0 4px;
+  }
+
+  .nav-tab {
+    padding: 13px 22px;
+    font-family: var(--font-display), sans-serif;
+    font-weight: 600;
+    font-size: 15px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--muted);
+    cursor: pointer;
+    border-bottom: 3px solid transparent;
+    transition: all 0.15s;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    user-select: none;
+    clip-path: polygon(0 0, calc(100% - 8px) 0, 100% 100%, 8px 100%);
+  }
+
+  .nav-tab:hover { color: #fff; background: rgba(255,255,255,0.04); }
+  .nav-tab.active {
+    color: #fff;
+    border-bottom-color: var(--accent);
+    background: rgba(238,59,59,0.08);
+  }
+
+  /* ===== MAIN ===== */
+  main {
+    padding: 20px;
+    max-width: 1200px;
+    margin: 0 auto;
+    position: relative;
+    z-index: 1;
+  }
+
+  .view { display: none; }
+  .view.active { display: block; }
+
+  /* ===== TOOLBAR ===== */
+  .toolbar {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 14px;
+    width: 100%;
+  }
+  .toolbar-row {
+    display: flex;
+    gap: 0;
+    width: 100%;
+  }
+  .toolbar-filters {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+    width: 100%;
+  }
+
+  .search-box {
+    flex: 1;
+    min-width: 0;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent);
+    color: var(--text);
+    padding: 10px 14px;
+    font-family: 'Roboto', sans-serif;
+    font-size: 14px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .search-box:focus { border-color: var(--accent-bright); }
+  .search-box::placeholder { color: var(--muted); }
+
+  select.filter {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 8px 10px;
+    width: 100%;
+    font-family: 'Roboto', sans-serif;
+    font-size: 13px;
+    outline: none;
+    cursor: pointer;
+  }
+
+  /* ===== BUTTONS ===== */
+  .btn {
+    padding: 10px 20px;
+    font-family: var(--font-display), sans-serif;
+    font-weight: 600;
+    font-size: 15px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    cursor: pointer;
+    border: none;
+    transition: all 0.15s;
+    white-space: nowrap;
+    clip-path: polygon(6px 0%, 100% 0%, calc(100% - 6px) 100%, 0% 100%);
+  }
+  .btn-primary {
+    background: var(--accent);
+    color: #fff;
+    font-weight: 700;
+    box-shadow: 0 2px 12px rgba(238,59,59,0.4);
+  }
+  .btn-primary:hover {
+    background: var(--accent-bright);
+    box-shadow: 0 4px 20px rgba(238,59,59,0.6);
+  }
+  .btn-danger { background: #880000; color: #fff; clip-path: none; }
+  .btn-danger:hover { background: var(--accent); }
+  .btn-ghost {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: #aaa;
+    clip-path: none;
+  }
+  .btn-ghost:hover { border-color: var(--accent); color: #fff; }
+  .btn-green { background: var(--green); color: #000; clip-path: none; }
+
+  /* ===== PARTS GRID ===== */
+  .parts-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 14px;
+  }
+
+  .part-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent);
+    overflow: hidden;
+    transition: border-color 0.2s, transform 0.15s, box-shadow 0.15s;
+    position: relative;
+  }
+  .part-card:hover {
+    border-color: var(--accent-bright);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 24px rgba(238,59,59,0.15);
+  }
+
+  .card-accent-bar {
+    height: 2px;
+    background: linear-gradient(90deg, var(--accent), transparent);
+  }
+
+  .card-body { padding: 14px 16px; }
+
+  .card-id {
+    font-family: var(--font-display), sans-serif;
+    font-size: 10px;
+    letter-spacing: 2px;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+
+  .card-name {
+    font-family: var(--font-display), sans-serif;
+    font-weight: 600;
+    font-size: 22px;
+    letter-spacing: 0.5px;
+    margin-bottom: 6px;
+    line-height: 1.05;
+    text-transform: uppercase;
+  }
+
+  .card-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    margin-bottom: 12px;
+  }
+
+  .meta-row {
+    font-size: 12px;
+    color: var(--muted);
+    display: flex;
+    gap: 6px;
+    font-family: var(--font-display), sans-serif;
+  }
+  .meta-row span { color: #ccc; font-weight: 700; }
+
+  .condition-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    font-family: var(--font-display), sans-serif;
+    font-size: 10px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    font-weight: 700;
+    margin-bottom: 10px;
+    font-style: italic;
+  }
+  .cond-new { background: rgba(34,204,102,0.12); color: var(--green); border: 1px solid rgba(34,204,102,0.3); }
+  .cond-used { background: rgba(238,59,59,0.1); color: #ff6666; border: 1px solid rgba(238,59,59,0.3); }
+  .cond-damaged { background: rgba(255,140,0,0.1); color: #ff9933; border: 1px solid rgba(255,140,0,0.3); }
+
+  .card-actions {
+    display: flex;
+    gap: 6px;
+    border-top: 1px solid var(--border);
+    padding-top: 10px;
+  }
+  .card-actions .btn {
+    padding: 6px 10px;
+    font-size: 12px;
+    flex: 1;
+    text-align: center;
+    clip-path: none;
+  }
+
+  .empty-state {
+    text-align: center;
+    padding: 80px 20px;
+    color: var(--muted);
+    grid-column: 1/-1;
+  }
+  .empty-state .big {
+    font-family: var(--font-display), sans-serif;
+    font-size: 56px;
+    font-weight: 700;
+    color: var(--border);
+    margin-bottom: 12px;
+    text-transform: uppercase;
+    letter-spacing: 4px;
+  }
+
+  /* ===== MODAL ===== */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.88);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  .modal-overlay.open { display: flex; }
+
+  .modal {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-top: 3px solid var(--accent);
+    width: 100%;
+    max-width: 600px;
+    max-height: 90vh;
+    overflow-y: auto;
+    position: relative;
+  }
+
+  .modal-header {
+    padding: 18px 24px 14px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: sticky;
+    top: 0;
+    background: var(--surface);
+    z-index: 2;
+  }
+
+  .modal-title {
+    font-family: var(--font-display), sans-serif;
+    font-weight: 700;
+    font-size: 24px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: #fff;
+  }
+
+  .close-btn {
+    background: none;
+    border: none;
+    color: var(--muted);
+    font-size: 22px;
+    cursor: pointer;
+    padding: 0 4px;
+    line-height: 1;
+    transition: color 0.2s;
+  }
+  .close-btn:hover { color: var(--accent-bright); }
+
+  .modal-body { padding: 20px 24px; }
+
+  .form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+  }
+  .form-full { grid-column: 1/-1; }
+
+  .form-group { display: flex; flex-direction: column; gap: 5px; }
+
+  label {
+    font-family: var(--font-display), sans-serif;
+    font-size: 10px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--muted);
+    font-weight: 700;
+  }
+
+  input[type="text"], input[type="number"], select, textarea {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-left: 2px solid var(--accent);
+    color: var(--text);
+    padding: 9px 12px;
+    font-family: 'Roboto', sans-serif;
+    font-size: 14px;
+    outline: none;
+    transition: border-color 0.2s;
+    width: 100%;
+  }
+  input:focus, select:focus, textarea:focus {
+    border-color: var(--accent-bright);
+    background: #1e1e1e;
+  }
+  textarea { resize: vertical; min-height: 70px; }
+  select option { background: var(--surface2); }
+
+  .modal-footer {
+    padding: 14px 24px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+  }
+
+  /* ===== QR MODAL ===== */
+  .qr-container {
+    text-align: center;
+    padding: 20px 24px;
+  }
+
+  #qr-display {
+    display: inline-block;
+    padding: 16px;
+    background: #fff;
+    margin: 16px auto;
+  }
+
+  .qr-part-info {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent);
+    padding: 14px 16px;
+    margin-bottom: 16px;
+    text-align: left;
+  }
+
+  .qr-part-name {
+    font-family: var(--font-display), sans-serif;
+    font-size: 24px;
+    font-weight: 700;
+    margin-bottom: 2px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  .label-preview {
+    border: 1px solid var(--border);
+    border-top: 2px solid var(--accent);
+    padding: 14px;
+    margin: 14px 0;
+    background: #fff;
+    color: #000;
+    font-family: var(--font-display), sans-serif;
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    text-align: left;
+  }
+
+  .label-text { flex: 1; }
+  .label-part-name { font-size: 16px; font-weight: 700; text-transform: uppercase; font-style: italic; }
+  .label-detail { font-size: 10px; color: #444; margin-top: 2px; }
+  .label-id { font-size: 9px; color: #888; margin-top: 5px; font-family: monospace; }
+  #label-qr { flex-shrink: 0; }
+
+  /* ===== SCANNER VIEW ===== */
+  .scanner-container {
+    max-width: 500px;
+    margin: 0 auto;
+  }
+
+  .scanner-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-top: 3px solid var(--accent);
+    padding: 24px;
+    text-align: center;
+    margin-bottom: 16px;
+  }
+
+  #qr-reader { width: 100%; }
+  #qr-reader video { width: 100% !important; }
+
+  .scan-result {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--green);
+    padding: 20px;
+    display: none;
+  }
+  .scan-result.visible { display: block; }
+
+  .scan-found {
+    color: var(--green);
+    font-family: var(--font-display), sans-serif;
+    font-size: 16px;
+    letter-spacing: 2px;
+    margin-bottom: 12px;
+    text-transform: uppercase;
+  }
+
+  /* ===== FAB ===== */
+  .fab {
+    position: fixed;
+    bottom: 28px;
+    right: 28px;
+    z-index: 500;
+    width: 56px;
+    height: 56px;
+    background: var(--accent);
+    border: none;
+    color: #fff;
+    font-size: 28px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 20px rgba(238,59,59,0.5);
+    transition: all 0.2s;
+    font-weight: 900;
+    clip-path: polygon(8px 0%, 100% 0%, calc(100% - 8px) 100%, 0% 100%);
+  }
+  .fab:hover {
+    background: var(--accent-bright);
+    transform: scale(1.08);
+    box-shadow: 0 6px 28px rgba(238,59,59,0.7);
+  }
+
+  /* ===== TOAST ===== */
+  .toast {
+    position: fixed;
+    bottom: 90px;
+    right: 28px;
+    background: #000;
+    border: 1px solid var(--accent);
+    border-left: 3px solid var(--accent-bright);
+    color: #fff;
+    padding: 10px 18px;
+    font-family: var(--font-display), sans-serif;
+    font-size: 15px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    z-index: 9999;
+    transform: translateX(200%);
+    transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  }
+  .toast.show { transform: translateX(0); }
+
+  /* ===== DETAIL FIELDS ===== */
+  .detail-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .detail-id {
+    font-family: var(--font-display), sans-serif;
+    font-size: 11px;
+    letter-spacing: 3px;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-bottom: 4px;
+    font-style: italic;
+  }
+
+  .detail-name {
+    font-family: var(--font-display), sans-serif;
+    font-weight: 700;
+    font-size: 40px;
+    letter-spacing: 1px;
+    line-height: 1;
+    text-transform: uppercase;
+  }
+
+  .detail-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    margin-bottom: 20px;
+  }
+
+  .detail-field {
+    background: var(--surface);
+    padding: 12px 16px;
+  }
+
+  .detail-label {
+    font-family: var(--font-display), sans-serif;
+    font-size: 9px;
+    letter-spacing: 2px;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-bottom: 3px;
+    font-weight: 700;
+  }
+
+  .detail-value {
+    font-size: 15px;
+    font-weight: 500;
+    font-family: var(--font-display), sans-serif;
+  }
+
+  @media (max-width: 600px) {
+    .form-grid { grid-template-columns: 1fr; }
+    .detail-grid { grid-template-columns: 1fr; }
+    .parts-grid { grid-template-columns: 1fr; }
+    .header-stats { display: none; }
+    .nav-tab { padding: 12px 14px; font-size: 13px; letter-spacing: 1px; }
+  }
+
+  #print-frame { display: none; }
+
+  /* ===== OEM TAGS ===== */
+  .oem-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    background: rgba(238,59,59,0.15);
+    border: 1px solid var(--accent);
+    color: #fff;
+    padding: 2px 8px;
+    font-family: var(--font-display), sans-serif;
+    font-size: 12px;
+    letter-spacing: 1px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.15s;
+    white-space: nowrap;
+  }
+  .oem-tag:hover { background: rgba(238,59,59,0.35); }
+  .oem-tag .oem-tag-x { color: var(--muted); font-size: 11px; line-height: 1; }
+
+  /* ===== OEM TAGS ===== */
+  .oem-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    background: rgba(238,59,59,0.15);
+    border: 1px solid var(--accent);
+    color: #fff;
+    padding: 2px 8px;
+    font-family: var(--font-display), sans-serif;
+    font-size: 12px;
+    letter-spacing: 1px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.15s;
+    white-space: nowrap;
+  }
+  .oem-tag:hover { background: rgba(238,59,59,0.35); }
+  .oem-tag .oem-tag-x { color: var(--muted); font-size: 11px; }
+
+  /* ===== CONDITION BUTTONS ===== */
+  .cond-btn {
+    flex: 1;
+    padding: 10px 8px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--muted);
+    font-family: var(--font-display), sans-serif;
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .cond-btn:not(:last-child) { border-right: none; }
+  .cond-btn.active { background: var(--accent); border-color: var(--accent); color: #000; font-weight: 700; }
+  .cond-btn:hover:not(.active) { border-color: #555; color: #fff; }
+
+  /* ===== EBAY BADGES ===== */
+  .ebay-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 8px;
+    font-family: var(--font-display), sans-serif;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+  .ebay-badge-live  { background: rgba(238,59,59,0.15); border: 1px solid #EE3B3B; color: #EE3B3B; }
+  .ebay-badge-sold    { background: rgba(34,204,102,0.15); border: 1px solid var(--green); color: var(--green); }
+  .ebay-badge-ended   { background: rgba(100,100,100,0.15); border: 1px solid #555; color: #888; }
+  .ebay-badge-soldout { background: rgba(238,59,59,0.12); border: 1px solid #cc2222; color: #cc2222; }
+  .ebay-badge-unknown { background: rgba(255,255,255,0.05); border: 1px solid var(--border); color: var(--muted); }
+
+  /* ===== EBAY BUTTON ===== */
+  .btn-ebay {
+    background: transparent;
+    border: 1px solid #e53238;
+    color: #e53238;
+    font-family: var(--font-display), sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    padding: 6px 12px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .btn-ebay:hover { background: #e53238; color: #fff; }
+
+
+  /* ===== SPREADSHEET ===== */
+  .sheet-toolbar {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 14px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+
+  .sheet-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: var(--font-display), sans-serif;
+    font-size: 13px;
+    min-width: 900px;
+  }
+
+  .sheet-table thead tr {
+    background: #000;
+    border-bottom: 2px solid var(--accent);
+  }
+
+  .sheet-table th {
+    padding: 10px 12px;
+    text-align: left;
+    font-family: var(--font-display), sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--muted);
+    cursor: pointer;
+    white-space: nowrap;
+    user-select: none;
+    transition: color 0.15s;
+    border-right: 1px solid var(--border);
+  }
+
+  .sheet-table th:hover { color: #fff; }
+  .sheet-table th.sort-active { color: var(--accent-bright); }
+
+  .sort-arrow { font-size: 10px; margin-left: 4px; }
+
+  .sheet-table tbody tr {
+    border-bottom: 1px solid var(--border);
+    transition: background 0.12s;
+  }
+
+  .sheet-table tbody tr:nth-child(even) { background: rgba(255,255,255,0.02); }
+  .sheet-table tbody tr:hover { background: rgba(238,59,59,0.07); }
+
+  .sheet-table td {
+    padding: 9px 12px;
+    color: #ccc;
+    border-right: 1px solid var(--border);
+    vertical-align: middle;
+    max-width: 180px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .sheet-table td.td-id {
+    font-family: var(--font-display), sans-serif;
+    font-size: 11px;
+    letter-spacing: 1px;
+    color: var(--muted);
+    font-style: italic;
+  }
+
+  .sheet-table td.td-name {
+    font-weight: 700;
+    color: #fff;
+    font-family: var(--font-display), sans-serif;
+    font-size: 16px;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+
+  .sheet-table td.td-notes {
+    font-size: 11px;
+    color: var(--muted);
+    max-width: 160px;
+  }
+
+  .sheet-table td.td-qty {
+    text-align: center;
+    font-weight: 700;
+    color: #fff;
+  }
+
+  .sheet-cond {
+    display: inline-block;
+    padding: 1px 6px;
+    font-size: 10px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    font-weight: 700;
+    font-style: italic;
+    font-family: var(--font-display), sans-serif;
+  }
+
+  .td-actions { white-space: nowrap; }
+  .td-actions .btn {
+    padding: 4px 8px;
+    font-size: 11px;
+    clip-path: none;
+    margin-right: 4px;
+  }
+
+  .sheet-empty {
+    text-align: center;
+    padding: 60px;
+    color: var(--muted);
+    font-family: var(--font-display), sans-serif;
+    font-size: 22px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+  }
+
+  @media print {
+    body > *:not(#print-frame) { display: none !important; }
+    #print-frame {
+      display: block !important;
+      position: fixed;
+      inset: 0;
+      background: #fff;
+      padding: 20px;
+    }
+    .print-label {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      padding: 12px;
+      border: 1.5px solid #000;
+      width: 360px;
+      font-family: Arial, sans-serif;
+    }
+    .print-label img { display: block !important; width: 90px; height: 90px; flex-shrink: 0; }
+    .print-label-text { flex: 1; }
+    .print-label-name { font-size: 17px; font-weight: 900; text-transform: uppercase; line-height: 1.2; }
+    .print-label-detail { font-size: 10px; color: #444; margin-top: 3px; }
+    .print-label-id { font-size: 9px; color: #777; margin-top: 5px; font-family: monospace; }
+  }
+
+
+  /* ===== ROLE & PERMISSIONS ===== */
+  .btn-flag { background:transparent; border:1px solid rgba(238,59,59,0.4); color:#cc2222; }
+  .btn-flag:hover { background:rgba(238,59,59,0.1); }
+  .btn-flag-pending { background:rgba(238,59,59,0.12); border-color:rgba(238,59,59,0.5); animation:flagPulse 2s ease-in-out infinite; }
+  @keyframes flagPulse { 0%,100% { opacity:1; } 50% { opacity:0.6; } }
+
+  /* ===== PIN KEYPAD ===== */
+  .pin-dot {
+    width: 16px; height: 16px;
+    border-radius: 50%;
+    border: 2px solid var(--border);
+    background: transparent;
+    transition: background 0.15s, border-color 0.15s;
+  }
+  .pin-dot.filled { background: var(--accent-bright); border-color: var(--accent-bright); }
+  .pin-dot.error  { background: transparent; border-color: var(--accent); animation: pinShake 0.3s; }
+  @keyframes pinShake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-6px)} 75%{transform:translateX(6px)} }
+
+  .pin-key {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: #fff;
+    font-family: var(--font-display), sans-serif;
+    font-size: 24px;
+    font-weight: 600;
+    padding: 14px 0;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background 0.12s, transform 0.08s;
+    user-select: none;
+  }
+  .pin-key:active { background: var(--accent); transform: scale(0.94); }
+  .pin-key-clear  { color: var(--muted); font-size: 13px; }
+  .pin-key-del    { color: var(--muted); }
+
+  /* ===== ACTIVITY LOG ===== */
+  .log-action-added   { color: var(--green); }
+  .log-action-edited  { color: #88aaff; }
+  .log-action-deleted { color: var(--accent-bright); }
+  .log-action-listed  { color: #e53238; }
+  .log-action-flagged { color: #cc2222; }
+  .log-action-approved { color: var(--green); }
+  .log-role-admin  { color: var(--accent-bright); font-weight:700; }
+  .log-role-logger { color: #cc2222; }
+
+  /* ===== MARKET SCOUT ===== */
+  @keyframes scoutPulse {
+    0%,100% { opacity:1; }
+    50% { opacity:0.4; }
+  }
+  .scout-stat { display:flex;flex-direction:column;gap:2px; }
+  .scout-stat span { font-family:var(--font-display),sans-serif;font-size:24px;font-weight:700;color:var(--accent-bright);line-height:1; }
+  .scout-stat label { font-family:var(--font-display),sans-serif;font-size:10px;letter-spacing:2px;color:var(--muted);text-transform:uppercase; }
+  .scout-card { background:var(--surface);border:1px solid var(--border);border-radius:6px;overflow:hidden;display:flex;flex-direction:column;transition:border-color 0.15s,transform 0.15s;position:relative; }
+  .scout-card:hover { border-color:var(--accent);transform:translateY(-2px); }
+  .scout-card-rank { position:absolute;top:8px;left:8px;background:rgba(0,0,0,0.75);color:var(--accent-bright);font-family:var(--font-display),sans-serif;font-size:13px;font-weight:700;letter-spacing:1px;padding:2px 7px;border-radius:3px;z-index:2; }
+  .scout-card-badge { position:absolute;top:8px;right:8px;background:var(--accent);color:#fff;font-family:var(--font-display),sans-serif;font-size:12px;font-weight:700;letter-spacing:1px;padding:2px 7px;border-radius:3px;z-index:2;text-transform:uppercase; }
+  .scout-card-img { width:100%;aspect-ratio:1;object-fit:cover;background:var(--surface2);display:block; }
+  .scout-card-img-placeholder { width:100%;aspect-ratio:1;background:var(--surface2);display:flex;align-items:center;justify-content:center;color:var(--border);font-size:36px; }
+  .scout-card-body { padding:10px 12px;flex:1;display:flex;flex-direction:column;gap:6px; }
+  .scout-card-title { font-family:var(--font-display),sans-serif;font-size:13px;font-weight:700;color:#fff;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden; }
+  .scout-card-price { font-family:var(--font-display),sans-serif;font-size:20px;font-weight:700;color:var(--green);line-height:1; }
+  .scout-card-meta { display:flex;flex-wrap:wrap;gap:6px; }
+  .scout-pill { font-family:var(--font-display),sans-serif;font-size:10px;letter-spacing:1px;text-transform:uppercase;padding:2px 7px;border-radius:3px;white-space:nowrap; }
+  .scout-pill-watch { background:rgba(238,59,59,0.15);color:var(--accent-bright);border:1px solid rgba(238,59,59,0.3); }
+  .scout-pill-sold { background:rgba(34,204,102,0.12);color:var(--green);border:1px solid rgba(34,204,102,0.3); }
+  .scout-pill-ship   { background:rgba(255,255,255,0.05);color:#aaa;border:1px solid var(--border); }
+  .scout-pill-active { background:rgba(238,59,59,0.1);color:#EE3B3B;border:1px solid rgba(238,59,59,0.3); }
+  .scout-pill-ship.free { background:rgba(34,204,102,0.08);color:var(--green);border-color:rgba(34,204,102,0.2); }
+  .scout-card-actions { display:flex;gap:6px;margin-top:auto;padding-top:8px; }
+  .scout-btn-ebay { flex:1;background:var(--surface2);color:var(--muted);border:1px solid var(--border);padding:7px 0;font-family:var(--font-display),sans-serif;font-size:13px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;border-radius:3px;cursor:pointer;text-align:center;text-decoration:none;display:block;transition:background 0.12s,color 0.12s; }
+  .scout-btn-ebay:hover { background:var(--border);color:#fff; }
+  .scout-btn-stock { background:var(--accent);color:#fff;border:none;padding:7px 12px;font-family:var(--font-display),sans-serif;font-size:13px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;border-radius:3px;cursor:pointer;white-space:nowrap;transition:background 0.12s; }
+  .scout-btn-stock:hover { background:var(--accent-bright); }
+  .scout-grid-inner { display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px; }
+  @media (max-width:600px) { .scout-grid-inner { grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px; } }
+
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <svg height="44" viewBox="0 0 220 44" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="Redline IMS">
+      <text x="0" y="32" font-family="Novalion, sans-serif" font-weight="800" font-style="italic" font-size="36" fill="#DEDEDC" letter-spacing="-0.5">REDLINE</text>
+      <line x1="0" y1="37" x2="158" y2="37" stroke="#EE3B3B" stroke-width="2.5"/>
+      <path d="M158 37 Q180 37 188 44 L216 44 Q208 38 178 38 L158 37Z" fill="#EE3B3B"/>
+      <text x="2" y="43" font-family="Underdog, serif" font-size="9" fill="#DEDEDC" letter-spacing="3">I.M.S</text>
+    </svg>
+  </div
+  </div>
+  <div class="header-stats">
+    <div class="header-stat"><strong id="stat-total">0</strong>Parts</div>
+    <div class="header-stat"><strong id="stat-new">0</strong>New</div>
+    <div class="header-stat"><strong id="stat-locations">0</strong>Locations</div>
+    <div class="header-stat" style="flex-direction:row;align-items:center;gap:6px;cursor:pointer;" onclick="showDbSettings()" title="Database connection">
+      <span id="db-status-dot" style="width:8px;height:8px;border-radius:50%;background:var(--muted);display:inline-block;transition:background 0.3s;"></span>
+      <span id="db-status-label" style="font-size:9px;letter-spacing:1px;color:var(--muted);text-transform:uppercase;">DB</span>
+    </div>
+    <div class="header-stat" style="flex-direction:row;gap:6px;align-items:center;cursor:pointer;" onclick="signOut()" id="user-stat" style="display:none;">
+      <span id="role-badge" style="font-family:var(--font-display),sans-serif;font-size:11px;font-weight:700;letter-spacing:1.5px;padding:2px 8px;border-radius:3px;text-transform:uppercase;"></span>
+      <span id="user-email-label" style="font-size:9px;letter-spacing:0.5px;color:var(--muted);max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></span>
+      <span style="font-size:9px;color:var(--muted);">⏻</span>
+    </div>
+  </div>
+</header>
+
+<!-- AUTH SCREEN -->
+<div id="auth-screen" style="display:none;position:fixed;inset:0;background:var(--bg);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;">
+  <svg height="70" viewBox="0 0 320 70" fill="none" xmlns="http://www.w3.org/2000/svg" style="margin-bottom:8px;" aria-label="Redline IMS">
+    <text x="0" y="52" font-family="Novalion, sans-serif" font-weight="800" font-style="italic" font-size="58" fill="#DEDEDC" letter-spacing="-1">REDLINE</text>
+    <line x1="0" y1="59" x2="232" y2="59" stroke="#EE3B3B" stroke-width="3.5"/>
+    <path d="M232 59 Q268 59 278 70 L316 70 Q306 63 268 62 L232 59Z" fill="#EE3B3B"/>
+    <text x="3" y="68" font-family="Underdog, serif" font-size="13" fill="#DEDEDC" letter-spacing="5">I.M.S</text>
+  </svg>
+  <div style="font-family:var(--font-display),sans-serif;font-size:11px;letter-spacing:3px;color:var(--muted);text-transform:uppercase;margin-bottom:32px;">Sign in to continue</div>
+
+  <div id="auth-error" style="display:none;margin-bottom:16px;padding:10px 16px;border:1px solid var(--red);border-left:3px solid var(--red);font-family:var(--font-display),sans-serif;font-size:12px;color:#ff6666;letter-spacing:0.5px;max-width:360px;width:100%;"></div>
+
+  <!-- Login mode toggle -->
+  <div style="display:flex;gap:0;margin-bottom:20px;width:100%;max-width:360px;border:1px solid var(--border);border-radius:4px;overflow:hidden;">
+    <button onclick="setLoginMode('password')" id="login-mode-password"
+      style="flex:1;padding:10px;font-family:var(--font-display),sans-serif;font-size:14px;font-weight:700;letter-spacing:2px;text-transform:uppercase;border:none;cursor:pointer;background:var(--accent);color:#fff;transition:background 0.15s;">
+      PASSWORD
+    </button>
+    <button onclick="setLoginMode('pin')" id="login-mode-pin"
+      style="flex:1;padding:10px;font-family:var(--font-display),sans-serif;font-size:14px;font-weight:700;letter-spacing:2px;text-transform:uppercase;border:none;cursor:pointer;background:var(--surface2);color:var(--muted);transition:background 0.15s;">
+      4-DIGIT PIN
+    </button>
+  </div>
+
+  <div style="width:100%;max-width:360px;display:flex;flex-direction:column;gap:12px;">
+
+    <!-- Password login -->
+    <div id="login-panel-password">
+      <div style="display:flex;flex-direction:column;gap:12px;">
+        <input type="email" id="auth-email" placeholder="Email address" autocomplete="email"
+          style="background:var(--surface2);border:1px solid var(--border);border-left:3px solid var(--accent);color:#fff;-webkit-text-fill-color:#fff;padding:14px 16px;font-family:'Roboto',sans-serif;font-size:15px;outline:none;-webkit-appearance:none;border-radius:0;width:100%;">
+        <input type="password" id="auth-password" placeholder="Password" autocomplete="current-password"
+          style="background:var(--surface2);border:1px solid var(--border);border-left:3px solid var(--accent);color:#fff;-webkit-text-fill-color:#fff;padding:14px 16px;font-family:'Roboto',sans-serif;font-size:15px;outline:none;-webkit-appearance:none;border-radius:0;width:100%;"
+          onkeydown="if(event.key==='Enter') signIn()">
+        <button onclick="signIn()" id="auth-signin-btn"
+          style="background:var(--accent);border:none;color:#000;font-weight:700;padding:14px;font-family:var(--font-display),sans-serif;font-size:18px;font-weight:700;letter-spacing:3px;text-transform:uppercase;cursor:pointer;width:100%;transition:background 0.15s;">
+          SIGN IN
+        </button>
+        <div id="auth-forgot" style="text-align:center;font-family:var(--font-display),sans-serif;font-size:11px;color:var(--muted);letter-spacing:1px;">
+          <span onclick="sendResetEmail()" style="cursor:pointer;color:var(--accent-bright);">Forgot password?</span>
+          &nbsp;·&nbsp;
+          <span style="color:var(--muted);">Contact your manager to create an account</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- PIN login -->
+    <div id="login-panel-pin" style="display:none;">
+      <div style="display:flex;flex-direction:column;gap:12px;align-items:center;">
+        <div style="font-family:var(--font-display),sans-serif;font-size:11px;letter-spacing:2px;color:var(--muted);text-transform:uppercase;margin-bottom:4px;">Enter your 4-digit PIN</div>
+        <div id="pin-dots" style="display:flex;gap:12px;margin-bottom:8px;">
+          <div class="pin-dot" id="pd0"></div>
+          <div class="pin-dot" id="pd1"></div>
+          <div class="pin-dot" id="pd2"></div>
+          <div class="pin-dot" id="pd3"></div>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;width:100%;max-width:240px;">
+          <button class="pin-key" onclick="pinKey('1')">1</button>
+          <button class="pin-key" onclick="pinKey('2')">2</button>
+          <button class="pin-key" onclick="pinKey('3')">3</button>
+          <button class="pin-key" onclick="pinKey('4')">4</button>
+          <button class="pin-key" onclick="pinKey('5')">5</button>
+          <button class="pin-key" onclick="pinKey('6')">6</button>
+          <button class="pin-key" onclick="pinKey('7')">7</button>
+          <button class="pin-key" onclick="pinKey('8')">8</button>
+          <button class="pin-key" onclick="pinKey('9')">9</button>
+          <button class="pin-key pin-key-clear" onclick="pinClear()" style="font-size:11px;letter-spacing:1px;">CLR</button>
+          <button class="pin-key" onclick="pinKey('0')">0</button>
+          <button class="pin-key pin-key-del" onclick="pinDel()">⌫</button>
+        </div>
+        <div style="font-family:var(--font-display),sans-serif;font-size:10px;letter-spacing:1px;color:var(--muted);text-transform:uppercase;margin-top:4px;">PIN set by your admin in Supabase user metadata</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- DB config (hidden when hardcoded, shown as fallback) -->
+  <div id="db-config-section" style="margin-top:32px;width:100%;max-width:360px;">
+    <div onclick="toggleDbConfig()" style="font-family:var(--font-display),sans-serif;font-size:12px;letter-spacing:2px;color:var(--muted);text-transform:uppercase;cursor:pointer;text-align:center;margin-bottom:8px;">
+      ⚙ Database Settings <span id="db-config-arrow">▼</span>
+    </div>
+    <div id="db-config-panel" style="display:none;display:flex;flex-direction:column;gap:8px;">
+      <input type="text" id="sb-url-input" placeholder="Supabase Project URL (https://xxxx.supabase.co)"
+        style="background:#0d0d0d;border:1px solid #333;color:#aaa;-webkit-text-fill-color:#aaa;padding:10px 12px;font-family:monospace;font-size:12px;outline:none;-webkit-appearance:none;border-radius:0;width:100%;">
+      <input type="text" id="sb-key-input" placeholder="Supabase anon public key"
+        style="background:#0d0d0d;border:1px solid #333;color:#aaa;-webkit-text-fill-color:#aaa;padding:10px 12px;font-family:monospace;font-size:12px;outline:none;-webkit-appearance:none;border-radius:0;width:100%;">
+      <button onclick="saveDbConfig()"
+        style="background:transparent;border:1px solid var(--border);color:var(--muted);padding:8px;font-family:var(--font-display),sans-serif;font-size:14px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;width:100%;">
+        SAVE & CONNECT
+      </button>
+      <div style="font-size:10px;color:var(--muted);font-family:var(--font-display),sans-serif;text-align:center;line-height:1.5;">
+        Get these from your Supabase project → Settings → API
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="nav-tabs">
+  <div class="nav-tab active" onclick="switchView('inventory')" id="tab-inventory" style="position:relative;">
+    ☰ Inventory
+    <span id="pending-nav-badge" style="display:none;position:absolute;top:6px;right:6px;background:var(--accent);color:#fff;font-family:var(--font-display),sans-serif;font-size:11px;font-weight:700;padding:1px 5px;border-radius:10px;line-height:1.4;"></span>
+  </div>
+  <div class="nav-tab" onclick="switchView('add')" id="tab-add">
+    + Add Part
+  </div>
+  <div class="nav-tab" onclick="switchView('scan')" id="tab-scan">
+    ⬡ Scan QR
+  </div>
+  <div class="nav-tab" onclick="switchView('sheet')" id="tab-sheet">
+    ⊞ Spreadsheet
+  </div>
+  <div class="nav-tab" onclick="switchView('scout')" id="tab-scout">
+    ◈ Market Scout
+  </div>
+  <div class="nav-tab" onclick="switchView('log')" id="tab-log" style="display:none;">
+    ⊟ Activity Log
+  </div>
+</div>
+
+<main>
+
+  <!-- INVENTORY VIEW -->
+  <div class="view active" id="view-inventory">
+    <div class="toolbar">
+      <div class="toolbar-row">
+        <input class="search-box" type="text" id="search-input" placeholder="Search parts or ask AI..."
+          oninput="onSearchInput()" onkeydown="if(event.key==='Enter') aiSearch()"
+          style="border-right:none;flex:1;min-width:0;">
+        <button id="ai-search-btn" onclick="aiSearch()" title="AI Natural Language Search"
+          style="background:var(--accent);border:none;color:#000;font-weight:700;padding:0 16px;font-size:18px;cursor:pointer;transition:background 0.15s;white-space:nowrap;flex-shrink:0;"
+          onmouseover="this.style.background='var(--accent-bright)'" onmouseout="this.style.background='var(--accent)'">✨</button>
+      </div>
+      <div class="toolbar-filters">
+      <select class="filter" id="filter-condition" onchange="renderInventory()">
+        <option value="">All Conditions</option>
+        <option value="New">New</option>
+        <option value="Used">Used</option>
+        <option value="Damaged">Damaged</option>
+      </select>
+      <select class="filter" id="filter-category" onchange="renderInventory()">
+        <option value="">All Categories</option>
+        <option value="Engine">Engine</option>
+        <option value="Suspension">Suspension</option>
+        <option value="Brakes">Brakes</option>
+        <option value="Electrical">Electrical</option>
+        <option value="Body/Fairings">Body/Fairings</option>
+        <option value="Exhaust">Exhaust</option>
+        <option value="Drivetrain">Drivetrain</option>
+        <option value="Frame/Chassis">Frame/Chassis</option>
+        <option value="Accessories">Accessories</option>
+        <option value="Other">Other</option>
+      </select>
+      </div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;">
+        <button class="btn btn-ghost" id="clear-ai-search-btn" onclick="clearAiSearch()" style="display:none;font-size:11px;padding:6px 10px;">✕ CLEAR AI</button>
+        <button class="btn btn-ghost" id="ebay-sync-btn" onclick="syncEbaySales()" style="display:none;font-size:11px;padding:6px 10px;">⟳ SYNC</button>
+        <button class="btn btn-ghost" id="ebay-status-btn" onclick="checkEbayStatuses()" style="display:none;font-size:11px;padding:6px 10px;">◉ STATUS</button>
+      </div>
+    </div>
+    <div id="ebay-sync-status" style="display:none;margin-bottom:12px;padding:8px 14px;background:#0d0d0d;border:1px solid var(--border);border-left:3px solid #e53238;font-family:var(--font-display),sans-serif;font-size:12px;letter-spacing:1px;color:var(--muted);"></div>
+    <div id="ai-search-status" style="display:none;margin-bottom:12px;padding:8px 14px;background:#0d0d0d;border:1px solid var(--border);border-left:3px solid var(--accent);font-family:var(--font-display),sans-serif;font-size:12px;letter-spacing:1px;color:var(--muted);"></div>
+    <div class="parts-grid" id="parts-grid"></div>
+  </div>
+
+  <!-- ADD / EDIT VIEW -->
+  <div class="view" id="view-add">
+    <div style="max-width: 640px;">
+      <div style="margin-bottom:24px;">
+        <div class="detail-id" id="form-mode-label">ADD NEW PART</div>
+        <div style="font-family:var(--font-display),sans-serif;font-size:32px;font-weight:700;text-transform:uppercase;letter-spacing:2px;margin-bottom:20px;">Part Details</div>
+      </div>
+
+      <!-- AI SETTINGS -->
+      <div id="ai-settings-bar" style="margin-bottom:16px;">
+        <div onclick="toggleAiSettings()" style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;padding:9px 14px;background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--accent);user-select:none;">
+          <span style="font-family:var(--font-display),sans-serif;font-size:14px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:var(--muted);">⚡ AI Settings</span>
+          <span id="ai-settings-arrow" style="color:var(--muted);font-size:12px;">▼</span>
+        </div>
+        <div id="ai-settings-panel" style="display:none;padding:14px;background:#0d0d0d;border:1px solid var(--border);border-top:none;">
+          <div class="form-group">
+            <label>Anthropic API Key</label>
+            <input type="password" id="api-key-input" placeholder="sk-ant-..." autocomplete="off"
+              style="font-family:monospace;font-size:13px;"
+              oninput="localStorage.setItem('rm_apikey', this.value); updateAiKeyStatus()">
+          </div>
+          <div id="ai-key-status" style="margin-top:8px;font-family:var(--font-display),sans-serif;font-size:11px;letter-spacing:1px;"></div>
+          <div style="margin-top:8px;font-size:11px;color:var(--muted);font-family:var(--font-display),sans-serif;letter-spacing:0.5px;">
+            Key is saved locally on this device only. Get yours at <span style="color:var(--accent-bright);">console.anthropic.com</span>
+          </div>
+        </div>
+      </div>
+
+
+      <div class="form-grid">
+
+        <div class="form-group form-full">
+          <label>Part Name <span style="color:var(--accent);">*</span></label>
+          <input type="text" id="f-name" placeholder="e.g. Front Brake Caliper" autocomplete="off" style="font-size:16px;">
+        </div>
+
+        <div class="form-group form-full">
+          <label>Condition</label>
+          <div style="display:flex;gap:0;width:100%;">
+            <button type="button" class="cond-btn active" data-val="New" onclick="selectCondition('New')">✓ New</button>
+            <button type="button" class="cond-btn" data-val="Used" onclick="selectCondition('Used')">Used</button>
+            <button type="button" class="cond-btn" data-val="Damaged" onclick="selectCondition('Damaged')">Damaged</button>
+          </div>
+          <input type="hidden" id="f-condition" value="New">
+        </div>
+
+        <div class="form-group">
+          <label>Category</label>
+          <select id="f-category">
+            <option value="">Select...</option>
+            <option>Engine</option><option>Suspension</option><option>Brakes</option>
+            <option>Electrical</option><option>Body/Fairings</option><option>Exhaust</option>
+            <option>Drivetrain</option><option>Frame/Chassis</option><option>Accessories</option><option>Other</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Make</label>
+          <input type="text" id="f-make" placeholder="e.g. Ducati, Honda, KTM" autocomplete="off">
+        </div>
+        <div class="form-group">
+          <label>Model</label>
+          <input type="text" id="f-model" placeholder="e.g. Panigale V4" autocomplete="off">
+        </div>
+        <div class="form-group">
+          <label>Year</label>
+          <input type="text" id="f-year" placeholder="e.g. 2022" inputmode="numeric">
+        </div>
+
+        <div class="form-group form-full">
+          <label>OEM / Part # <span style="color:var(--muted);font-size:10px;font-style:italic;">— press Enter or comma after each</span></label>
+          <div id="oem-tags-wrap" style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;min-height:44px;background:var(--surface2);border:1px solid var(--border);border-left:2px solid var(--accent);padding:6px 10px;cursor:text;" onclick="document.getElementById('oem-tag-input').focus()">
+            <div id="oem-tags"></div>
+            <input type="text" id="oem-tag-input" placeholder="e.g. 61810981A"
+              style="flex:1;min-width:140px;background:transparent;border:none;outline:none;color:var(--text);font-family:'Roboto',sans-serif;font-size:15px;padding:2px 0;-webkit-text-fill-color:var(--text);"
+              oninput="onOemInput()" onkeydown="handleOemKeydown(event)">
+          </div>
+          <div style="margin-top:8px;">
+            <button class="btn btn-primary" id="ai-lookup-btn" onclick="aiLookupPart()" style="white-space:nowrap;padding:9px 16px;font-size:13px;letter-spacing:1px;width:100%;" disabled>⚡ AI FILL — Auto-fill all fields from part number</button>
+          </div>
+          <div id="ai-status" style="display:none;margin-top:8px;padding:10px 14px;background:#0d0d0d;border:1px solid var(--border);border-left:3px solid var(--accent);font-family:var(--font-display),sans-serif;font-size:12px;letter-spacing:1px;color:var(--muted);"></div>
+        </div>
+
+        <div class="form-group">
+          <label>Location <span style="color:var(--muted);font-size:10px;">shelf / bin / container</span></label>
+          <input type="text" id="f-location" placeholder="e.g. Shelf A3" autocomplete="off">
+          <div id="location-suggestion" style="display:none;margin-top:6px;padding:8px 12px;background:#0d0d0d;border:1px solid var(--border);border-left:3px solid var(--green);font-family:var(--font-display),sans-serif;font-size:12px;letter-spacing:0.5px;color:#ccc;">
+            <div id="location-suggestion-text"></div>
+            <button onclick="useLocationSuggestion()" style="margin-top:6px;background:var(--green);border:none;color:#000;padding:4px 12px;font-family:var(--font-display),sans-serif;font-size:13px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;">✓ USE THIS</button>
+            <button onclick="document.getElementById('location-suggestion').style.display='none'" style="margin-top:6px;margin-left:6px;background:transparent;border:1px solid var(--border);color:var(--muted);padding:4px 10px;font-family:var(--font-display),sans-serif;font-size:13px;letter-spacing:1px;text-transform:uppercase;cursor:pointer;">DISMISS</button>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Qty in Stock</label>
+          <div style="display:flex;align-items:center;">
+            <button type="button" onclick="adjustQty(-1)" style="background:var(--surface2);border:1px solid var(--border);color:#fff;width:44px;height:44px;font-size:22px;cursor:pointer;flex-shrink:0;line-height:1;">−</button>
+            <input type="number" id="f-qty" value="1" min="0" style="text-align:center;border-left:none;border-right:none;font-size:18px;font-weight:700;width:64px;flex-shrink:0;">
+            <button type="button" onclick="adjustQty(1)" style="background:var(--surface2);border:1px solid var(--border);color:#fff;width:44px;height:44px;font-size:22px;cursor:pointer;flex-shrink:0;line-height:1;">+</button>
+          </div>
+        </div>
+
+        <div class="form-group" id="price-field-group">
+          <label>Est. Value <span id="price-admin-note" style="font-size:9px;color:var(--muted);display:none;">(admin only)</span></label>
+          <div style="display:flex;align-items:center;">
+            <span style="background:var(--surface2);border:1px solid var(--border);border-right:none;border-left:2px solid var(--accent);padding:9px 10px;font-size:14px;color:var(--muted);">$</span>
+            <input type="number" id="f-price" placeholder="0.00" min="0" step="0.01" style="border-left:none;" inputmode="decimal">
+          </div>
+        </div>
+
+        <div class="form-group form-full">
+          <label>Notes <span style="color:var(--muted);font-size:10px;">— optional</span></label>
+          <textarea id="f-notes" placeholder="Damage details, where it came from, anything useful..."></textarea>
+        </div>
+
+      </div>
+
+      <div style="display:flex;gap:12px;margin-top:24px;flex-wrap:wrap;">
+        <button class="btn btn-primary" onclick="savePart()" style="flex:1;min-width:140px;padding:16px;font-size:18px;letter-spacing:2px;">SAVE PART</button>
+        <button class="btn btn-ghost" onclick="clearForm()">CLEAR</button>
+        <button class="btn btn-ghost" onclick="switchView('inventory')" id="cancel-edit-btn" style="display:none;">CANCEL</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCAN VIEW -->
+  <div class="view" id="view-scan">
+    <div class="scanner-container">
+      <div class="scanner-box">
+        <div style="font-family:var(--font-display),sans-serif;font-size:20px;font-weight:700;letter-spacing:3px;text-transform:uppercase;margin-bottom:16px;color:#fff;">QR Code Scanner</div>
+        <div id="qr-reader"></div>
+        <div style="margin-top:16px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">
+          <button class="btn btn-primary" onclick="startScanner()" id="start-scan-btn">START CAMERA</button>
+          <button class="btn btn-ghost" onclick="stopScanner()" id="stop-scan-btn" style="display:none;">STOP</button>
+        </div>
+        <div style="margin-top:12px;color:var(--muted);font-size:13px;">Or paste a Part ID manually:</div>
+        <div style="display:flex;gap:8px;margin-top:8px;">
+          <input type="text" id="manual-id-input" placeholder="PART-XXXX" style="flex:1;">
+          <button class="btn btn-ghost" onclick="lookupManual()">LOOK UP</button>
+        </div>
+      </div>
+
+      <div class="scan-result" id="scan-result">
+        <div class="scan-found">✓ Part Found</div>
+        <div id="scan-result-content"></div>
+        <div style="display:flex;gap:8px;margin-top:16px;flex-wrap:wrap;">
+          <button class="btn btn-primary" onclick="editScannedPart()">EDIT PART</button>
+          <button class="btn btn-ghost" onclick="showQRForScanned()">VIEW QR LABEL</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SPREADSHEET VIEW -->
+  <div class="view" id="view-sheet">
+    <div class="sheet-toolbar">
+      <input class="search-box" type="text" id="sheet-search" placeholder="Search all fields..." oninput="renderSheet()" style="max-width:260px;">
+      <select class="filter" id="sheet-filter-cat" onchange="renderSheet()">
+        <option value="">All Categories</option>
+        <option>Engine</option><option>Suspension</option><option>Brakes</option>
+        <option>Electrical</option><option>Body/Fairings</option><option>Exhaust</option>
+        <option>Drivetrain</option><option>Frame/Chassis</option><option>Accessories</option><option>Other</option>
+      </select>
+      <select class="filter" id="sheet-filter-cond" onchange="renderSheet()">
+        <option value="">All Conditions</option>
+        <option value="New">New</option><option value="Used">Used</option><option value="Damaged">Damaged</option>
+      </select>
+      <div style="margin-left:auto;display:flex;gap:8px;flex-wrap:wrap;">
+        <button class="btn btn-ghost" onclick="exportCSV()" id="sheet-export-btn">⬇ EXPORT CSV</button>
+        <label class="btn btn-ghost" style="cursor:pointer;padding:10px 20px;font-family:var(--font-display),sans-serif;font-weight:600;font-size:15px;letter-spacing:2px;text-transform:uppercase;background:transparent;border:1px solid var(--border);color:#aaa;clip-path:none;transition:all .15s;white-space:nowrap;" onmouseover="this.style.borderColor='var(--accent)';this.style.color='#fff'" onmouseout="this.style.borderColor='var(--border)';this.style.color='#aaa'">
+          ⬆ IMPORT CSV
+          <input type="file" accept=".csv" id="csv-import-input" style="display:none;" onchange="importCSV(event)">
+        </label>
+      </div>
+    </div>
+    <div style="overflow-x:auto;border:1px solid var(--border);">
+      <table class="sheet-table" id="sheet-table">
+        <thead>
+          <tr>
+            <th onclick="sortSheet('id')" data-col="id">ID <span class="sort-arrow"></span></th>
+            <th onclick="sortSheet('name')" data-col="name">Part Name <span class="sort-arrow"></span></th>
+            <th onclick="sortSheet('category')" data-col="category">Category <span class="sort-arrow"></span></th>
+            <th onclick="sortSheet('condition')" data-col="condition">Condition <span class="sort-arrow"></span></th>
+            <th onclick="sortSheet('make')" data-col="make">Make <span class="sort-arrow"></span></th>
+            <th onclick="sortSheet('model')" data-col="model">Model <span class="sort-arrow"></span></th>
+            <th onclick="sortSheet('year')" data-col="year">Year <span class="sort-arrow"></span></th>
+            <th onclick="sortSheet('oemnum')" data-col="oemnum">OEM # <span class="sort-arrow"></span></th>
+            <th onclick="sortSheet('location')" data-col="location">Location <span class="sort-arrow"></span></th>
+            <th onclick="sortSheet('qty')" data-col="qty">Qty <span class="sort-arrow"></span></th>
+            <th onclick="sortSheet('price')" data-col="price">Est. Value <span class="sort-arrow"></span></th>
+            <th>Notes</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="sheet-body"></tbody>
+      </table>
+    </div>
+    <div id="sheet-count" style="margin-top:10px;font-family:var(--font-display),sans-serif;font-size:11px;letter-spacing:2px;color:var(--muted);text-transform:uppercase;"></div>
+  </div>
+
+
+  <!-- ===== MARKET SCOUT VIEW ===== -->
+  <div class="view" id="view-scout">
+  <div style="padding:20px;max-width:1400px;margin:0 auto;">
+
+    <!-- Header -->
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;flex-wrap:wrap;gap:12px;">
+      <div>
+        <div style="font-family:var(--font-display),sans-serif;font-size:28px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:#fff;line-height:1;">
+          ◈ Market <span style="color:var(--accent-bright);">Scout</span>
+        </div>
+        <div style="font-family:var(--font-display),sans-serif;font-size:11px;letter-spacing:3px;color:var(--muted);text-transform:uppercase;margin-top:2px;">
+          eBay Motorcycle Parts — Ranked by Demand & Sales
+        </div>
+      </div>
+      <div id="scout-last-run" style="font-family:var(--font-display),sans-serif;font-size:11px;letter-spacing:2px;color:var(--muted);text-transform:uppercase;"></div>
+    </div>
+
+    <!-- Controls -->
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:16px;margin-bottom:18px;display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:end;">
+
+      <div>
+        <label style="font-family:var(--font-display),sans-serif;font-size:10px;letter-spacing:2px;color:var(--muted);text-transform:uppercase;display:block;margin-bottom:5px;">Category</label>
+        <select id="scout-category" style="width:100%;background:var(--surface2);border:1px solid var(--border);color:#fff;padding:9px 10px;font-family:var(--font-display),sans-serif;font-size:13px;letter-spacing:1px;border-radius:4px;outline:none;cursor:pointer;">
+          <option value="all">All Parts</option>
+          <option value="exhaust">Exhaust</option>
+          <option value="bodywork">Body & Frame</option>
+          <option value="brakes">Brakes</option>
+          <option value="controls">Handlebars & Controls</option>
+          <option value="suspension">Suspension</option>
+          <option value="engine">Engine Parts</option>
+          <option value="electrical">Electrical</option>
+          <option value="lighting">Lighting</option>
+          <option value="wheels">Wheels & Tires</option>
+          <option value="intake">Air & Fuel</option>
+          <option value="mirrors">Mirrors</option>
+        </select>
+      </div>
+
+      <div>
+        <label style="font-family:var(--font-display),sans-serif;font-size:10px;letter-spacing:2px;color:var(--muted);text-transform:uppercase;display:block;margin-bottom:5px;">Keywords</label>
+        <input type="text" id="scout-keywords" placeholder="e.g. Yamaha R1 exhaust" style="width:100%;background:var(--surface2);border:1px solid var(--border);color:#fff;padding:9px 10px;font-family:var(--font-display),sans-serif;font-size:13px;letter-spacing:1px;border-radius:4px;outline:none;" />
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+        <div>
+          <label style="font-family:var(--font-display),sans-serif;font-size:10px;letter-spacing:2px;color:var(--muted);text-transform:uppercase;display:block;margin-bottom:5px;">Min $</label>
+          <input type="number" id="scout-min-price" value="0" min="0" style="width:100%;background:var(--surface2);border:1px solid var(--border);color:#fff;padding:9px 10px;font-family:var(--font-display),sans-serif;font-size:13px;border-radius:4px;outline:none;" />
+        </div>
+        <div>
+          <label style="font-family:var(--font-display),sans-serif;font-size:10px;letter-spacing:2px;color:var(--muted);text-transform:uppercase;display:block;margin-bottom:5px;">Max $</label>
+          <input type="number" id="scout-max-price" value="500" min="0" style="width:100%;background:var(--surface2);border:1px solid var(--border);color:#fff;padding:9px 10px;font-family:var(--font-display),sans-serif;font-size:13px;border-radius:4px;outline:none;" />
+        </div>
+      </div>
+
+      <div>
+        <label style="font-family:var(--font-display),sans-serif;font-size:10px;letter-spacing:2px;color:var(--muted);text-transform:uppercase;display:block;margin-bottom:5px;">Sort By</label>
+        <select id="scout-sort" style="width:100%;background:var(--surface2);border:1px solid var(--border);color:#fff;padding:9px 10px;font-family:var(--font-display),sans-serif;font-size:13px;letter-spacing:1px;border-radius:4px;outline:none;cursor:pointer;">
+          <option value="bestMatch" selected>Best Match</option>
+          <option value="newlyListed">Newly Listed</option>
+          <option value="endingSoon">Ending Soon</option>
+          <option value="priceLow">Price: Low → High</option>
+          <option value="priceHigh">Price: High → Low</option>
+        </select>
+      </div>
+
+      <div>
+        <label style="font-family:var(--font-display),sans-serif;font-size:10px;letter-spacing:2px;color:var(--muted);text-transform:uppercase;display:block;margin-bottom:5px;">Results</label>
+        <select id="scout-results" style="width:100%;background:var(--surface2);border:1px solid var(--border);color:#fff;padding:9px 10px;font-family:var(--font-display),sans-serif;font-size:13px;letter-spacing:1px;border-radius:4px;outline:none;cursor:pointer;">
+          <option value="20">20 items</option>
+          <option value="40" selected>40 items</option>
+          <option value="80">80 items</option>
+          <option value="200">200 items</option>
+        </select>
+      </div>
+
+      <div style="display:flex;align-items:flex-end;gap:8px;grid-column:1 / -1;">
+        <button onclick="runScout()" id="scout-run-btn" style="flex:1;background:var(--accent);color:#fff;border:none;padding:10px 16px;font-family:var(--font-display),sans-serif;font-size:16px;font-weight:700;letter-spacing:2px;text-transform:uppercase;border-radius:4px;cursor:pointer;transition:background 0.15s;">
+          ▶ SCAN
+        </button>
+        <button onclick="exportScoutCsv()" title="Export CSV" style="background:var(--surface2);color:var(--muted);border:1px solid var(--border);padding:10px 12px;border-radius:4px;cursor:pointer;font-size:14px;" id="scout-export-btn">
+          ⬇ CSV
+        </button>
+      </div>
+    </div>
+
+    <!-- Stats bar -->
+    <div id="scout-stats" style="background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:12px 16px;margin-bottom:16px;display:none;flex-wrap:wrap;gap:20px;">
+      <div class="scout-stat"><span id="sstat-total">—</span><label>Total Found</label></div>
+      <div class="scout-stat"><span id="sstat-shown">—</span><label>Shown</label></div>
+      <div class="scout-stat"><span id="sstat-avg-price">—</span><label>Avg Price</label></div>
+      <div class="scout-stat"><span id="sstat-free-ship">—</span><label>Free Shipping</label></div>
+      <div class="scout-stat"><span id="sstat-top-rated">—</span><label>Top Rated</label></div>
+      <div class="scout-stat"><span id="sstat-filtered" style="color:#cc2222;">—</span><label>Filtered Out</label></div>
+    </div>
+
+    <!-- Loading state -->
+    <div id="scout-loading" style="display:none;text-align:center;padding:60px 20px;">
+      <div style="font-family:var(--font-display),sans-serif;font-size:22px;letter-spacing:4px;color:var(--accent-bright);text-transform:uppercase;animation:scoutPulse 1.2s ease-in-out infinite;">
+        ◈ Scanning eBay...
+      </div>
+      <div style="font-family:var(--font-display),sans-serif;font-size:11px;letter-spacing:2px;color:var(--muted);margin-top:8px;text-transform:uppercase;">Fetching live listings from eBay</div>
+    </div>
+
+    <!-- Error state -->
+    <div id="scout-error" style="display:none;background:rgba(238,59,59,0.1);border:1px solid var(--accent);border-radius:6px;padding:16px;color:var(--accent-bright);font-family:var(--font-display),sans-serif;font-size:13px;letter-spacing:1px;">
+    </div>
+
+    <!-- Empty state -->
+    <div id="scout-empty" style="display:none;text-align:center;padding:60px 20px;color:var(--muted);font-family:var(--font-display),sans-serif;font-size:13px;letter-spacing:2px;text-transform:uppercase;">
+      No results — try broadening your search
+    </div>
+
+    <!-- Results grid -->
+    <div id="scout-grid" style="display:none;"></div>
+
+    <!-- Initial CTA -->
+    <div id="scout-cta" style="text-align:center;padding:60px 20px;border:2px dashed var(--border);border-radius:8px;margin-top:8px;">
+      <div style="font-family:var(--font-display),sans-serif;font-size:36px;font-weight:700;letter-spacing:3px;color:var(--muted);text-transform:uppercase;">◈ Market Scout</div>
+      <div style="font-family:var(--font-display),sans-serif;font-size:13px;letter-spacing:2px;color:var(--muted);margin-top:8px;text-transform:uppercase;max-width:400px;margin:10px auto 0;">
+        Find the best-selling motorcycle parts on eBay. Set your filters and hit SCAN.
+      </div>
+      <div style="margin-top:24px;display:flex;justify-content:center;gap:24px;flex-wrap:wrap;">
+        <div style="font-family:var(--font-display),sans-serif;font-size:11px;letter-spacing:2px;color:var(--muted);text-transform:uppercase;">
+          ✓ Sold quantities<br>✓ Demand score ranking<br>✓ Free shipping filter
+        </div>
+        <div style="font-family:var(--font-display),sans-serif;font-size:11px;letter-spacing:2px;color:var(--muted);text-transform:uppercase;">
+          ✓ 12 part categories<br>✓ Price range filter<br>✓ Export to CSV
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+
+  <!-- ===== ACTIVITY LOG VIEW ===== -->
+  <div class="view" id="view-log">
+    <div style="padding:20px;max-width:1200px;margin:0 auto;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;flex-wrap:wrap;gap:12px;">
+        <div>
+          <div style="font-family:var(--font-display),sans-serif;font-size:28px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:#fff;line-height:1;">
+            ⊟ Activity <span style="color:var(--accent-bright);">Log</span>
+          </div>
+          <div style="font-family:var(--font-display),sans-serif;font-size:11px;letter-spacing:3px;color:var(--muted);text-transform:uppercase;margin-top:2px;">
+            All part additions, edits, deletions & flags
+          </div>
+        </div>
+        <button onclick="loadActivityLog()" class="btn btn-ghost" style="font-size:12px;">⟳ REFRESH</button>
+      </div>
+      <div id="log-loading" style="display:none;text-align:center;padding:40px;font-family:var(--font-display),sans-serif;font-size:12px;letter-spacing:2px;color:var(--muted);text-transform:uppercase;">Loading...</div>
+      <div id="log-empty" style="display:none;text-align:center;padding:60px;color:var(--muted);font-family:var(--font-display),sans-serif;font-size:12px;letter-spacing:2px;text-transform:uppercase;">No activity yet</div>
+      <div id="log-table-wrap" style="overflow-x:auto;">
+        <table class="sheet-table" id="log-table" style="display:none;">
+          <thead>
+            <tr>
+              <th style="width:120px;">Time</th>
+              <th style="width:80px;">Action</th>
+              <th>Part</th>
+              <th style="width:140px;">User</th>
+              <th style="width:70px;">Role</th>
+              <th>Detail</th>
+            </tr>
+          </thead>
+          <tbody id="log-body"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<!-- ===== REVIEW MODAL ===== -->
+<div class="modal-overlay" id="review-modal">
+  <div class="modal" style="max-width:440px;">
+    <div class="modal-header">
+      <div class="modal-title">⚑ Review Flagged Part</div>
+      <button class="close-btn" onclick="closeModal('review-modal')">✕</button>
+    </div>
+    <div style="padding:16px 20px;display:flex;flex-direction:column;gap:14px;">
+      <div id="review-part-name" style="font-family:var(--font-display),sans-serif;font-size:20px;font-weight:700;text-transform:uppercase;color:#fff;"></div>
+      <div id="review-flag-note" style="font-family:var(--font-display),sans-serif;font-size:12px;color:#cc2222;letter-spacing:1px;"></div>
+      <div style="font-family:var(--font-display),sans-serif;font-size:11px;letter-spacing:2px;color:var(--muted);text-transform:uppercase;margin-bottom:2px;">Admin note (optional)</div>
+      <textarea id="review-admin-note" placeholder="Add a note before approving or editing..." rows="3"
+        style="background:var(--surface2);border:1px solid var(--border);border-left:2px solid var(--accent);color:#fff;padding:10px 12px;font-family:'Roboto',sans-serif;font-size:13px;outline:none;resize:vertical;width:100%;"></textarea>
+      <div style="display:flex;gap:8px;">
+        <button onclick="approveReview()" class="btn" style="flex:1;background:var(--green);border:none;color:#fff;font-family:var(--font-display),sans-serif;font-size:16px;font-weight:700;letter-spacing:2px;padding:10px;">✓ APPROVE</button>
+        <button onclick="editFromReview()" class="btn btn-ghost" style="flex:1;font-size:14px;">EDIT PART</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- FAB -->
+<button class="fab" onclick="switchView('add')" title="Add new part">+</button>
+
+<!-- QR Label Modal -->
+<div class="modal-overlay" id="qr-modal">
+  <div class="modal" style="max-width:440px;">
+    <div class="modal-header">
+      <div class="modal-title">QR Label</div>
+      <button class="close-btn" onclick="closeModal('qr-modal')">✕</button>
+    </div>
+    <div class="qr-container">
+      <div class="qr-part-info">
+        <div class="qr-part-name" id="qr-part-name"></div>
+        <div style="font-size:13px;color:var(--muted);margin-top:4px;" id="qr-part-sub"></div>
+      </div>
+
+      <div style="font-size:12px;color:var(--muted);margin-bottom:8px;font-family:'Barlow Condensed',sans-serif;letter-spacing:1px;text-transform:uppercase;">Label Preview (printable)</div>
+      
+      <div class="label-preview print-area" id="label-preview-box">
+        <div id="label-qr"></div>
+        <div class="label-text">
+          <div class="label-part-name" id="label-name-text"></div>
+          <div class="label-detail" id="label-detail-text"></div>
+          <div class="label-id" id="label-id-text"></div>
+          <div class="label-detail" id="label-loc-text"></div>
+        </div>
+      </div>
+
+      <div id="qr-display" style="display:none;"></div>
+
+      <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:8px;">
+        <button class="btn btn-primary" onclick="printZebra()">🖨 PRINT ZEBRA</button>
+        <button class="btn btn-ghost" onclick="generatePDF()">GENERATE PDF</button>
+        <button class="btn btn-ghost" onclick="closeModal('qr-modal')">CLOSE</button>
+      </div>
+
+      <!-- Zebra print status -->
+      <div id="zebra-status" style="display:none;margin-top:10px;padding:8px 14px;background:#0d0d0d;border:1px solid var(--border);border-left:3px solid var(--accent);font-family:var(--font-display),sans-serif;font-size:12px;letter-spacing:1px;color:var(--muted);text-align:center;"></div>
+
+      <!-- Zebra config panel -->
+      <div id="zebra-config" style="margin-top:12px;padding:10px 14px;background:#0d0d0d;border:1px solid #333;font-family:var(--font-display),sans-serif;font-size:12px;color:var(--muted);">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+          <span style="font-family:var(--font-display),sans-serif;font-size:14px;font-weight:600;letter-spacing:2px;color:#aaa;text-transform:uppercase;">🖨 Zebra Printer</span>
+          <select id="zebra-mode" onchange="saveZebraConfig()" style="background:#1a1a1a;border:1px solid var(--border);color:#aaa;padding:3px 8px;font-family:var(--font-display),sans-serif;font-size:11px;letter-spacing:1px;">
+            <option value="wifi">WiFi / IP (mobile + desktop)</option>
+            <option value="browserprint">Browser Print (desktop only)</option>
+          </select>
+        </div>
+        <div id="zebra-wifi-row" style="display:flex;flex-direction:column;gap:6px;">
+          <div style="display:flex;gap:8px;align-items:center;">
+            <span style="white-space:nowrap;font-size:11px;color:var(--muted);min-width:60px;">Printer IP:</span>
+            <input type="text" id="zebra-ip-input" placeholder="192.168.1.45" inputmode="numeric"
+              oninput="saveZebraConfig()"
+              style="flex:1;min-width:0;width:100%;background:#2a2a2a;border:1px solid #555;border-left:3px solid var(--accent);color:#fff;-webkit-text-fill-color:#fff;padding:10px 12px;font-family:monospace;font-size:16px;font-weight:600;outline:none;-webkit-appearance:none;border-radius:0;opacity:1;letter-spacing:1px;">
+          </div>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <span style="white-space:nowrap;font-size:11px;color:var(--muted);min-width:60px;">Port:</span>
+            <select id="zebra-port" onchange="saveZebraConfig()" style="flex:1;background:#2a2a2a;border:1px solid #555;color:#fff;-webkit-text-fill-color:#fff;padding:8px 10px;font-family:var(--font-display),sans-serif;font-size:13px;-webkit-appearance:none;border-radius:0;">
+              <option value="80">80 (recommended)</option>
+              <option value="9100">9100</option>
+            </select>
+          </div>
+        </div>
+        <div id="zebra-bp-row" style="display:none;font-size:11px;color:var(--muted);line-height:1.7;">
+          Requires <a href="https://www.zebra.com/us/en/support-downloads/software/developer-tools/browser-print.html" target="_blank" style="color:var(--accent-bright);">Zebra Browser Print</a> running in your system tray.<br>
+          <span style="color:#888;">USB or network printer, desktop only.</span>
+        </div>
+      </div>
+
+      <!-- PDF download link, shown after generation -->
+      <div id="pdf-link-area" style="display:none;margin-top:14px;text-align:center;">
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:11px;letter-spacing:1px;color:var(--muted);text-transform:uppercase;margin-bottom:8px;">PDF ready — tap below to open/save</div>
+        <a id="pdf-download-link" target="_blank"
+           style="display:inline-block;padding:10px 24px;background:var(--green);color:#000;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:13px;letter-spacing:2px;text-transform:uppercase;text-decoration:none;">
+          OPEN PDF
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- eBay Listing Modal -->
+<div class="modal-overlay" id="ebay-modal">
+  <div class="modal" style="max-width:560px;max-height:90vh;overflow-y:auto;">
+    <div class="modal-header">
+      <div class="modal-title" style="display:flex;align-items:center;gap:10px;">
+        <span style="background:#e53238;color:#fff;font-family:var(--font-display),sans-serif;font-size:13px;font-weight:700;letter-spacing:2px;padding:2px 8px;">eBay</span>
+        <span id="ebay-modal-title">Create Listing</span>
+      </div>
+      <button class="close-btn" onclick="closeModal('ebay-modal')">✕</button>
+    </div>
+    <div class="modal-body">
+
+      <!-- Listing form -->
+      <div id="ebay-listing-section">
+
+        <div id="ebay-ai-status" style="display:none;margin-bottom:12px;padding:8px 14px;background:#0d0d0d;border:1px solid var(--border);border-left:3px solid var(--accent);font-family:var(--font-display),sans-serif;font-size:12px;letter-spacing:1px;color:var(--muted);"></div>
+
+        <div class="form-group form-full" style="margin-bottom:12px;">
+          <label>eBay Title <span style="color:var(--muted);font-size:10px;">(80 char max)</span></label>
+          <input type="text" id="ebay-title" maxlength="80" placeholder="Part title for eBay search">
+          <div id="ebay-title-count" style="font-size:10px;color:var(--muted);margin-top:2px;text-align:right;"></div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
+          <div class="form-group">
+            <label>Price (USD)</label>
+            <div style="display:flex;align-items:center;">
+              <span style="background:var(--surface2);border:1px solid var(--border);border-right:none;padding:9px 10px;color:var(--muted);font-size:13px;">$</span>
+              <input type="number" id="ebay-price" min="0" step="0.01" placeholder="0.00" style="border-left:none;">
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Quantity</label>
+            <input type="number" id="ebay-qty" min="1" value="1">
+          </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
+          <div class="form-group">
+            <label>Condition</label>
+            <select id="ebay-condition">
+              <option value="NEW">New</option>
+              <option value="USED_EXCELLENT">Used — Excellent</option>
+              <option value="USED_GOOD">Used — Good</option>
+              <option value="USED_ACCEPTABLE">Used — Acceptable</option>
+              <option value="FOR_PARTS_OR_NOT_WORKING">For Parts / Not Working</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Category ID <span style="color:var(--muted);font-size:9px;"><a href="https://www.ebay.com/sch/allcategories/all-categories" target="_blank" style="color:var(--accent-bright);">find →</a></span></label>
+            <input type="text" id="ebay-category" value="66471" placeholder="e.g. 66471">
+          </div>
+        </div>
+
+        <div class="form-group form-full" style="margin-bottom:12px;">
+          <label>Photos <span style="color:var(--muted);font-size:10px;">— eBay requires at least 1</span></label>
+          <div id="ebay-photo-zone" style="border:2px dashed var(--border);border-left:3px solid var(--accent);background:var(--surface);padding:14px;text-align:center;cursor:pointer;" onclick="document.getElementById('ebay-photo-input').click()">
+            <input type="file" id="ebay-photo-input" accept="image/*" multiple style="display:none;" onchange="handleEbayPhotos(this.files)">
+            <div id="ebay-photo-placeholder">
+              <div style="font-size:24px;margin-bottom:4px;">📷</div>
+              <div style="font-family:var(--font-display),sans-serif;font-size:15px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#fff;">Tap to add photos</div>
+              <div style="font-size:11px;color:var(--muted);margin-top:2px;font-family:var(--font-display),sans-serif;">Up to 12 photos · JPEG, PNG</div>
+            </div>
+            <div id="ebay-photo-thumbs" style="display:none;flex-wrap:wrap;gap:6px;justify-content:center;"></div>
+          </div>
+          <div id="ebay-photo-status" style="font-size:11px;color:var(--muted);margin-top:4px;font-family:var(--font-display),sans-serif;"></div>
+        </div>
+
+        <div class="form-group form-full" style="margin-bottom:12px;">
+          <label>Description</label>
+          <textarea id="ebay-description" rows="6" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-left:2px solid var(--accent);color:var(--text);padding:10px;font-family:'Roboto',sans-serif;font-size:13px;resize:vertical;outline:none;"></textarea>
+        </div>
+
+        <div id="ebay-submit-status" style="display:none;margin-bottom:12px;padding:10px 14px;background:#0d0d0d;border:1px solid var(--border);border-left:3px solid var(--accent);font-family:var(--font-display),sans-serif;font-size:12px;letter-spacing:1px;color:#ccc;"></div>
+
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('ebay-modal')">CANCEL</button>
+      <button class="btn btn-ghost" id="ebay-ai-fill-btn" onclick="aiGenerateListing()">⚡ AI GENERATE</button>
+      <button class="btn btn-primary" id="ebay-publish-btn" onclick="publishEbayListing()" style="background:#e53238;border-color:#e53238;">PUBLISH LISTING</button>
+    </div>
+  </div>
+</div>
+
+<!-- Delete Confirm Modal -->
+<div class="modal-overlay" id="delete-modal">
+  <div class="modal" style="max-width:380px;">
+    <div class="modal-header">
+      <div class="modal-title" style="color:var(--red);">Delete Part?</div>
+      <button class="close-btn" onclick="closeModal('delete-modal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <p style="color:var(--muted);font-size:14px;">This will permanently remove <strong id="delete-part-name" style="color:var(--text);"></strong> from inventory. This cannot be undone.</p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('delete-modal')">CANCEL</button>
+      <button class="btn btn-danger" onclick="confirmDelete()">DELETE</button>
+    </div>
+  </div>
+</div>
+
+<!-- Duplicate Warning Modal -->
+<div class="modal-overlay" id="dupe-modal">
+  <div class="modal" style="max-width:500px;">
+    <div class="modal-header">
+      <div class="modal-title" style="color:#cc2222;">⚠ Possible Duplicate</div>
+      <button class="close-btn" onclick="closeModal('dupe-modal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <p style="color:var(--muted);font-size:13px;margin-bottom:14px;">This part looks similar to items already in inventory:</p>
+      <div id="dupe-list" style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px;"></div>
+      <p style="color:var(--muted);font-size:12px;">Save anyway if this is a different item (e.g. different condition or location).</p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('dupe-modal')">REVIEW</button>
+      <button class="btn btn-primary" onclick="confirmSaveDupe()">SAVE ANYWAY</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<!-- Print frame: rendered here in the page, shown only on print -->
+<div id="print-frame"></div>
+
+<script>
+// ===== DATA LAYER =====
+const STORAGE_KEY = 'motoparts_v1';
+let parts = [];
+let editingId = null;
+let deleteTargetId = null;
+let scannedPartId = null;
+let scanner = null;
+
+// ===== SUPABASE CONFIG =====
+// Set these once before deploying — users won't need to enter them
+const SUPABASE_URL = 'https://jspnycqscqvkifszyygn.supabase.co';  // e.g. 'https://abcdefgh.supabase.co'
+const ANTHROPIC_API_KEY = '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';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpzcG55Y3FzY3F2a2lmc3p5eWduIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwNzg1ODAsImV4cCI6MjA5NTY1NDU4MH0.Ql08Wjb4RgcD5R3EnnefXFjaEFR4mUH5HLvnXjA6-sA';  // your anon public key
+
+// ===== SUPABASE =====
+let sb = null;
+let currentUser = null;
+let currentRole  = null;   // 'admin' | 'logger' | null
+
+function isAdmin()  { return currentRole === 'admin'; }
+function isLogger() { return currentRole === 'logger'; }
+
+function applyRoleUI() {
+  // Tabs: loggers cannot see Spreadsheet (edit) or Market Scout
+  document.getElementById('tab-sheet').style.display  = isAdmin() ? '' : '';  // sheet shown to all, but locked
+  document.getElementById('tab-scout').style.display  = isAdmin() ? '' : 'none';
+
+  // Header role badge
+  const badge = document.getElementById('role-badge');
+  if (badge) {
+    badge.textContent = isAdmin() ? 'ADMIN' : 'DATA LOGGER';
+    badge.style.background = isAdmin() ? 'rgba(238,59,59,0.2)' : 'rgba(255,170,0,0.15)';
+    badge.style.color      = isAdmin() ? 'var(--accent-bright)' : '#cc2222';
+    badge.style.border     = isAdmin() ? '1px solid rgba(238,59,59,0.4)' : '1px solid rgba(255,170,0,0.4)';
+  }
+
+  // Pending review button — visible to all but admin also sees badge count
+  renderPendingBadge();
+  applyFormRoleUI();
+}
+
+function initSupabase() {
+  const url = SUPABASE_URL || localStorage.getItem('sb_url');
+  const key = SUPABASE_ANON_KEY || localStorage.getItem('sb_key');
+  if (!url || !key) return false;
+  try {
+    sb = supabase.createClient(url, key, {
+      auth: {
+        persistSession: true,
+        autoRefreshToken: true,
+        detectSessionInUrl: false
+      },
+      global: {
+        headers: { 'apikey': key }
+      }
+    });
+    return true;
+  } catch(e) { console.error('initSupabase error:', e); return false; }
+}
+
+function setDbStatus(state) {
+  const dot   = document.getElementById('db-status-dot');
+  const label = document.getElementById('db-status-label');
+  if (!dot) return;
+  const colors = { connected: 'var(--green)', syncing: '#cc2222', error: 'var(--red)', offline: 'var(--muted)' };
+  dot.style.background  = colors[state] || colors.offline;
+  label.textContent     = state === 'connected' ? 'LIVE' : state.toUpperCase();
+  label.style.color     = colors[state] || colors.offline;
+}
+
+function saveDbConfig() {
+  const url = document.getElementById('sb-url-input').value.trim();
+  const key = document.getElementById('sb-key-input').value.trim();
+  if (!url || !key) return;
+  localStorage.setItem('sb_url', url);
+  localStorage.setItem('sb_key', key);
+  location.reload();
+}
+
+function toggleDbConfig() {
+  const panel = document.getElementById('db-config-panel');
+  const arrow = document.getElementById('db-config-arrow');
+  const open  = panel.style.display === 'none' || !panel.style.display;
+  panel.style.display = open ? 'flex' : 'none';
+  arrow.textContent   = open ? '▲' : '▼';
+}
+
+function showDbSettings() {
+  // Show auth screen scrolled to DB settings
+  document.getElementById('auth-screen').style.display = 'flex';
+  document.getElementById('db-config-panel').style.display = 'flex';
+  document.getElementById('db-config-arrow').textContent = '▲';
+  const saved_url = localStorage.getItem('sb_url') || '';
+  const saved_key = localStorage.getItem('sb_key') || '';
+  document.getElementById('sb-url-input').value = saved_url;
+  document.getElementById('sb-key-input').value = saved_key;
+}
+
+// ===== AUTH =====
+async function signIn() {
+  const email    = document.getElementById('auth-email').value.trim();
+  const password = document.getElementById('auth-password').value;
+  const btn      = document.getElementById('auth-signin-btn');
+  const errEl    = document.getElementById('auth-error');
+
+  if (!sb) { showAuthError('Database not configured — expand Settings below.'); return; }
+  if (!email || !password) { showAuthError('Enter your email and password.'); return; }
+
+  btn.textContent = 'SIGNING IN...';
+  btn.disabled    = true;
+  errEl.style.display = 'none';
+
+  const { data, error } = await sb.auth.signInWithPassword({ email, password });
+
+  if (error) {
+    showAuthError(error.message);
+    btn.textContent = 'SIGN IN';
+    btn.disabled    = false;
+    return;
+  }
+
+  currentUser = data.user;
+  cachePinIfSet(data.user);
+  onAuthSuccess();
+}
+
+async function signOut() {
+  if (sb) await sb.auth.signOut();
+  currentUser = null;
+  parts = [];
+  document.getElementById('auth-screen').style.display = 'flex';
+  document.getElementById('user-stat').style.display   = 'none';
+  setDbStatus('offline');
+}
+
+async function sendResetEmail() {
+  const email = document.getElementById('auth-email').value.trim();
+  if (!email) { showAuthError('Enter your email address first.'); return; }
+  const { error } = await sb.auth.resetPasswordForEmail(email);
+  if (error) showAuthError(error.message);
+  else showAuthError('Password reset email sent! Check your inbox.');
+}
+
+function showAuthError(msg) {
+  const el = document.getElementById('auth-error');
+  el.textContent    = msg;
+  el.style.display  = 'block';
+  el.style.color    = msg.includes('sent') ? 'var(--green)' : '#ff6666';
+  el.style.borderLeftColor = msg.includes('sent') ? 'var(--green)' : 'var(--red)';
+}
+
+async function onAuthSuccess() {
+  // Read role from Supabase user_metadata
+  currentRole = currentUser?.user_metadata?.role || 'logger';
+  // Fallback: check app_metadata (set server-side)
+  if (!currentRole || currentRole === 'logger') {
+    currentRole = currentUser?.app_metadata?.role || 'logger';
+  }
+
+  document.getElementById('auth-screen').style.display = 'none';
+  document.getElementById('user-stat').style.display   = 'flex';
+  document.getElementById('user-email-label').textContent = currentUser.email;
+  setDbStatus('syncing');
+  applyRoleUI();
+  await loadData();
+  subscribeRealtime();
+
+  // Check if there are local parts not yet in Supabase — offer migration
+  try {
+    const localRaw = localStorage.getItem(STORAGE_KEY);
+    const localParts = localRaw ? JSON.parse(localRaw) : [];
+    if (localParts.length > 0 && parts.length === 0) {
+      // Supabase is empty but local has data — auto-migrate
+      await migrateLocalToSupabase(localParts);
+    }
+  } catch(e) {}
+
+  setDbStatus('connected');
+}
+
+async function migrateLocalToSupabase(localParts) {
+  if (!sb || !currentUser || !localParts.length) return;
+  setDbStatus('syncing');
+  toast(`Uploading ${localParts.length} parts to database...`);
+  try {
+    const rows = localParts.map(p => partToDbRow(p));
+    // Batch upsert in chunks of 50
+    for (let i = 0; i < rows.length; i += 50) {
+      const chunk = rows.slice(i, i + 50);
+      const { error } = await sb.from('parts').upsert(chunk, { onConflict: 'id' });
+      if (error) throw error;
+    }
+    parts = localParts;
+    updateStats();
+    renderInventory();
+    renderSheet();
+    toast(`✓ ${localParts.length} parts synced to database`);
+  } catch(e) {
+    console.error('Migration error:', e);
+    toast('⚠ Migration failed: ' + e.message);
+    setDbStatus('error');
+  }
+}
+
+// ===== DATA (Supabase-backed) =====
+async function loadData() {
+  if (!sb || !currentUser) {
+    // Offline fallback
+    try { const raw = localStorage.getItem(STORAGE_KEY); if (raw) parts = JSON.parse(raw); } catch(e) {}
+    updateStats(); renderInventory(); return;
+  }
+  try {
+    const { data, error } = await sb.from('parts').select('*').order('created_at', { ascending: false });
+    if (error) throw error;
+    parts = (data || []).map(dbRowToPart);
+    updateStats();
+    renderInventory();
+    renderSheet();
+    renderPendingBadge();
+    // Also cache locally as offline backup
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(parts));
+    // Immediately check eBay listing statuses after data loads
+    if (parts.some(p => p.ebayListingId)) {
+      lastStatusCheck = 0; // reset throttle so it always runs on fresh load
+      maybeCheckStatuses();
+    }
+  } catch(e) {
+    console.error('loadData error:', e);
+    setDbStatus('error');
+    toast('⚠ Could not load from database: ' + (e.message || 'check connection'));
+    // Fall back to local
+    try { const raw = localStorage.getItem(STORAGE_KEY); if (raw) parts = JSON.parse(raw); } catch(err) {}
+    updateStats(); renderInventory();
+  }
+}
+
+async function saveData(updatedPart) {
+  updateStats();
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(parts));
+  if (!sb || !currentUser || !updatedPart) return;
+
+  setDbStatus('syncing');
+  try {
+    const row = partToDbRow(updatedPart);
+    const { error } = await sb.from('parts').upsert(row, { onConflict: 'id' });
+    if (error) throw error;
+    setDbStatus('connected');
+  } catch(e) {
+    console.error('saveData error:', e);
+    setDbStatus('error');
+    // Show the actual error so we can diagnose
+    toast('⚠ Sync error: ' + (e?.message || e?.details || JSON.stringify(e)).substring(0, 80));
+  }
+}
+
+async function deleteFromDb(partId) {
+  if (!sb || !currentUser) return;
+  setDbStatus('syncing');
+  try {
+    const { error } = await sb.from('parts').delete().eq('id', partId);
+    if (error) throw error;
+    setDbStatus('connected');
+  } catch(e) {
+    console.error('deleteFromDb error:', e);
+    setDbStatus('error');
+  }
+}
+
+// Real-time subscription — push changes from other devices instantly
+let realtimeChannel = null;
+function subscribeRealtime() {
+  if (!sb) return;
+  if (realtimeChannel) sb.removeChannel(realtimeChannel);
+
+  realtimeChannel = sb.channel('parts-changes')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'parts' }, (payload) => {
+      const { eventType, new: newRow, old: oldRow } = payload;
+
+      if (eventType === 'INSERT' || eventType === 'UPDATE') {
+        const p = dbRowToPart(newRow);
+        const idx = parts.findIndex(x => x.id === p.id);
+        // Skip if this is our own change (already applied locally)
+        if (idx !== -1) { parts[idx] = p; }
+        else { parts.unshift(p); }
+      } else if (eventType === 'DELETE') {
+        parts = parts.filter(x => x.id !== oldRow.id);
+      }
+
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(parts));
+      updateStats();
+      renderInventory();
+      renderSheet();
+    })
+    .subscribe();
+}
+
+// Map between app part object and Supabase row
+function partToDbRow(p) {
+  return {
+    id:               p.id,
+    name:             p.name             || '',
+    category:         p.category         || '',
+    condition:        p.condition        || 'Used',
+    make:             p.make             || '',
+    model:            p.model            || '',
+    year:             p.year             || '',
+    oemnum:           p.oemnum           || '',
+    location:         p.location         || '',
+    qty:              p.qty              ?? 1,
+    price:            p.price            || 0,
+    notes:            p.notes            || '',
+    ebay_listing_id:  p.ebayListingId    || null,
+    ebay_listing_url: p.ebayListingUrl   || null,
+    ebay_env:         p.ebayEnv          || null,
+    ebay_sold_qty:    p.ebaySoldQty      || 0,
+    ebay_last_sold:   p.ebayLastSold     || null,
+    ebay_status:      p.ebayStatus      || null,
+    ebay_status_at:   p.ebayStatusAt    || null,
+    pending_review:   p.pendingReview   || false,
+    review_note:      p.reviewNote      || '',
+    added_by:         p.addedBy         || currentUser?.email || null,
+    updated_at:       new Date().toISOString()
+  };
+}
+
+function dbRowToPart(row) {
+  return {
+    id:             row.id,
+    name:           row.name            || '',
+    category:       row.category        || '',
+    condition:      row.condition       || 'Used',
+    make:           row.make            || '',
+    model:          row.model           || '',
+    year:           row.year            || '',
+    oemnum:         row.oemnum          || '',
+    location:       row.location        || '',
+    qty:            row.qty             ?? 1,
+    price:          row.price           || 0,
+    notes:          row.notes           || '',
+    ebayListingId:  row.ebay_listing_id  || null,
+    ebayListingUrl: row.ebay_listing_url || null,
+    ebayEnv:        row.ebay_env         || null,
+    ebaySoldQty:    row.ebay_sold_qty    || 0,
+    ebayLastSold:   row.ebay_last_sold   || null,
+    ebayStatus:     row.ebay_status      || null,
+    ebayStatusAt:   row.ebay_status_at   || null,
+    pendingReview:  row.pending_review   || false,
+    reviewNote:     row.review_note      || '',
+    addedBy:        row.added_by         || null,
+    createdAt:      row.created_at       || new Date().toISOString(),
+    updatedAt:      row.updated_at       || new Date().toISOString()
+  };
+}
+
+function generateId() {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let id = 'PART-';
+  for(let i=0;i<6;i++) id += chars[Math.floor(Math.random()*chars.length)];
+  return id;
+}
+
+// ===== STATS =====
+function updateStats() {
+  document.getElementById('stat-total').textContent = parts.length;
+  document.getElementById('stat-new').textContent = parts.filter(p=>p.condition==='New').length;
+  const locs = new Set(parts.map(p=>p.location).filter(Boolean));
+  document.getElementById('stat-locations').textContent = locs.size;
+}
+
+// ===== VIEWS =====
+function switchView(name) {
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('view-'+name).classList.add('active');
+  document.getElementById('tab-'+name).classList.add('active');
+  if(name === 'inventory') { renderInventory(); stopScanner(); maybeCheckStatuses(); }
+  if(name === 'log') { loadActivityLog(); }
+  if(name === 'scan') stopScanner();
+  if(name === 'sheet') { renderSheet(); stopScanner(); }
+  if(name !== 'add') { editingId = null; clearForm(); }
+}
+
+// ===== INVENTORY RENDER =====
+let aiFilteredIds = null; // null = no AI filter active
+
+function onSearchInput() {
+  // If AI filter was active, clear it when user types
+  if (aiFilteredIds !== null) clearAiSearch(false);
+  renderInventory();
+}
+
+function clearAiSearch(clearInput = true) {
+  aiFilteredIds = null;
+  document.getElementById('ai-search-status').style.display = 'none';
+  document.getElementById('clear-ai-search-btn').style.display = 'none';
+  if (clearInput) document.getElementById('search-input').value = '';
+  renderInventory();
+}
+
+function renderInventory() {
+  const search = document.getElementById('search-input').value.toLowerCase();
+  const condFilter = document.getElementById('filter-condition').value;
+  const catFilter = document.getElementById('filter-category').value;
+
+  let filtered = parts.filter(p => {
+    // AI filter takes precedence over text search
+    if (aiFilteredIds !== null) {
+      if (!aiFilteredIds.has(p.id)) return false;
+    } else {
+      const text = [p.name, p.make, p.model, p.location, p.oemnum, p.category].join(' ').toLowerCase();
+      if (search && !text.includes(search)) return false;
+    }
+    if (condFilter && p.condition !== condFilter) return false;
+    if (catFilter && p.category !== catFilter) return false;
+    return true;
+  });
+
+  const grid = document.getElementById('parts-grid');
+
+  if(filtered.length === 0) {
+    grid.innerHTML = `<div class="empty-state">
+      <div class="big">${parts.length === 0 ? '📦' : '🔍'}</div>
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted);">
+        ${parts.length === 0 ? 'No parts yet' : 'No results found'}
+      </div>
+      <div style="margin-top:8px;font-size:14px;">
+        ${parts.length === 0 ? 'Add your first part using the + button below' : 'Try a different search or filter'}
+      </div>
+    </div>`;
+    return;
+  }
+
+  grid.innerHTML = filtered.map(p => `
+    <div class="part-card" data-part-id="${p.id}">
+      <div class="card-accent-bar"></div>
+      <div class="card-body">
+        <div class="card-id">${p.id} ${p.category ? '· '+p.category : ''}</div>
+        <div class="card-name">${esc(p.name)}</div>
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+          <div class="condition-badge cond-${p.condition.toLowerCase()}">${p.condition}</div>
+          ${p.pendingReview ? `<span style="font-family:var(--font-display),sans-serif;font-size:11px;font-weight:700;letter-spacing:1px;background:rgba(238,59,59,0.15);border:1px solid rgba(238,59,59,0.4);color:#cc2222;padding:1px 8px;border-radius:3px;">⚑ NEEDS REVIEW</span>` : ''}
+        </div>
+        ${p.ebayListingId ? `<div class="ebay-badge ${ebayBadgeClass(p)}">
+          ${ebayBadgeText(p)}
+          <a href="${esc(p.ebayListingUrl || '')}" target="_blank" style="color:inherit;margin-left:6px;opacity:0.7;font-size:9px;">VIEW →</a>
+        </div>` : ''}
+        <div class="card-meta">
+          ${p.make || p.model ? `<div class="meta-row">Make/Model: <span>${esc([p.make,p.model].filter(Boolean).join(' '))}</span></div>` : ''}
+          ${p.year ? `<div class="meta-row">Year: <span>${esc(p.year)}</span></div>` : ''}
+          ${p.location ? `<div class="meta-row">Location: <span>${esc(p.location)}</span></div>` : ''}
+          ${p.oemnum ? `<div class="meta-row">OEM#: <span>${esc(p.oemnum)}</span></div>` : ''}
+          <div class="meta-row">Qty: <span>${p.qty ?? 1}</span>${p.price && isAdmin() ? ` &nbsp;·&nbsp; Est: <span style="color:var(--green);">$${parseFloat(p.price).toLocaleString()}</span>` : ''}</div>
+          ${p.addedBy ? `<div class="meta-row" style="opacity:0.5;">Added by: <span>${esc(p.addedBy)}</span></div>` : ''}
+        </div>
+        <div class="card-actions">
+          ${isAdmin() ? `<button class="btn btn-ghost" onclick="editPart('${p.id}')">EDIT</button>` : ''}
+          <button class="btn btn-ghost" onclick="showQR('${p.id}')">QR LABEL</button>
+          ${isAdmin() ? `<button class="btn btn-ebay" onclick="openEbayListing('${p.id}')">LIST ON eBay</button>` : ''}
+          ${!p.pendingReview
+            ? `<button class="btn btn-flag" onclick="flagForReview('${p.id}')" title="Flag for admin review">⚑ FLAG</button>`
+            : (isAdmin()
+                ? `<button class="btn btn-flag btn-flag-pending" onclick="openReviewModal('${p.id}')" title="Review flagged item">⚑ REVIEW</button>`
+                : `<button class="btn btn-flag btn-flag-pending" disabled title="Pending admin review">⚑ PENDING</button>`)}
+          ${isAdmin() ? `<button class="btn btn-danger" onclick="deletePart('${p.id}')">✕</button>` : ''}
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
+// ===== NATURAL LANGUAGE SEARCH =====
+async function aiSearch() {
+  const query = document.getElementById('search-input').value.trim();
+  if (!query || parts.length === 0) { renderInventory(); return; }
+
+  // If short/simple query, just do regular search
+  if (query.length < 15 && !query.includes(' ')) { renderInventory(); return; }
+
+  const apiKey = ANTHROPIC_API_KEY || document.getElementById('api-key-input').value.trim() || localStorage.getItem('rm_apikey') || '';
+  if (!apiKey) {
+    // Fall back to regular search silently
+    renderInventory();
+    return;
+  }
+
+  const btn = document.getElementById('ai-search-btn');
+  btn.textContent = '⏳';
+  btn.disabled = true;
+  setSearchStatus('loading', '⚡ AI searching...');
+
+  // Build a compact inventory summary for the prompt
+  const summary = parts.map(p =>
+    `${p.id}|${p.name}|${p.category||''}|${p.condition||''}|${p.make||''}|${p.model||''}|${p.year||''}|${p.location||''}|${p.oemnum||''}`
+  ).join('\n');
+
+  const prompt = `Inventory (id|name|category|condition|make|model|year|location|oem):\n${summary}\n\nQuery: "${query}"\n\nReturn ONLY a JSON array of matching part IDs, e.g. ["PART-ABC","PART-XYZ"]. Empty array if none match.`;
+
+  try {
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-5-20250929',
+        max_tokens: 300,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+
+    if (!response.ok) throw new Error('API error ' + response.status);
+    const data = await response.json();
+    const text = data.content.filter(b => b.type === 'text').map(b => b.text).join('');
+    const match = text.match(/\[[\s\S]*?\]/);
+    if (!match) throw new Error('No result');
+    const ids = JSON.parse(match[0]);
+    aiFilteredIds = new Set(ids.map(id => id.toUpperCase()));
+    renderInventory();
+    const count = [...aiFilteredIds].filter(id => parts.find(p => p.id === id)).length;
+    setSearchStatus('success', `⚡ AI found <strong style="color:#fff">${count}</strong> result${count !== 1 ? 's' : ''} for: <em style="color:var(--accent-bright)">"${esc(query)}"</em>`);
+    document.getElementById('clear-ai-search-btn').style.display = 'inline-block';
+
+  } catch(err) {
+    // Silently fall back to regular search on error
+    aiFilteredIds = null;
+    renderInventory();
+    setSearchStatus('error', '⚠ AI search unavailable — showing keyword results.');
+    setTimeout(() => document.getElementById('ai-search-status').style.display = 'none', 3000);
+  } finally {
+    btn.textContent = '⚡';
+    btn.disabled = false;
+  }
+}
+
+function setSearchStatus(type, html) {
+  const el = document.getElementById('ai-search-status');
+  el.style.display = 'block';
+  el.innerHTML = html;
+  el.style.borderLeftColor = type === 'success' ? 'var(--green)' : type === 'error' ? 'var(--red)' : 'var(--accent)';
+}
+
+function esc(str) {
+  if(!str) return '';
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ===== SAVE/EDIT PART =====
+let pendingSavePart = null;
+
+function savePart() {
+  const name = document.getElementById('f-name').value.trim();
+  if(!name) { toast('Part name is required'); document.getElementById('f-name').focus(); return; }
+
+  // Only check duplicates on new parts
+  if (!editingId) {
+    const dupes = findDuplicates(getFormData());
+    if (dupes.length > 0) {
+      pendingSavePart = getFormData();
+      const list = document.getElementById('dupe-list');
+      list.innerHTML = dupes.map(p => `
+        <div style="background:var(--surface2);border:1px solid var(--border);border-left:3px solid #cc2222;padding:10px 14px;">
+          <div style="font-family:var(--font-display),sans-serif;font-size:17px;font-weight:700;text-transform:uppercase;">${esc(p.name)}</div>
+          <div style="font-size:12px;color:var(--muted);font-family:var(--font-display),sans-serif;margin-top:2px;">
+            ${[p.make, p.model, p.year].filter(Boolean).join(' · ')} ${p.condition ? '· '+p.condition : ''} ${p.location ? '· '+p.location : ''}
+          </div>
+          <div style="font-size:10px;color:var(--muted);margin-top:3px;font-style:italic;">${p.id} ${p.oemnum ? '· OEM: '+p.oemnum : ''}</div>
+        </div>
+      `).join('');
+      openModal('dupe-modal');
+      return;
+    }
+  }
+
+  doSave();
+}
+
+function confirmSaveDupe() {
+  closeModal('dupe-modal');
+  doSave();
+}
+
+function doSave() {
+  const name = document.getElementById('f-name').value.trim();
+  let savedPart;
+  if(editingId) {
+    const idx = parts.findIndex(p=>p.id===editingId);
+    if(idx !== -1) {
+      parts[idx] = { ...parts[idx], ...getFormData() };
+      savedPart = parts[idx];
+      toast('Part updated ✓');
+    }
+  } else {
+    savedPart = { id: generateId(), createdAt: new Date().toISOString(), ...getFormData() };
+    parts.unshift(savedPart);
+    toast('Part added ✓');
+  }
+
+  const _wasEditing = !!editingId;
+  saveData(savedPart);
+  logActivity(savedPart.id, savedPart.name, _wasEditing ? 'edited' : 'added',
+    [savedPart.make, savedPart.model, savedPart.year].filter(Boolean).join(' ') || '');
+  clearForm();
+  editingId = null;
+  pendingSavePart = null;
+  document.getElementById('cancel-edit-btn').style.display = 'none';
+  document.getElementById('form-mode-label').textContent = 'ADD NEW PART';
+  switchView('inventory');
+}
+
+function findDuplicates(data) {
+  if (!parts.length) return [];
+  const candidates = parts.filter(p => p.id !== editingId);
+
+  return candidates.filter(p => {
+    // Exact OEM match — definite dupe
+    if (data.oemnum && p.oemnum && data.oemnum.toUpperCase() === p.oemnum.toUpperCase()) return true;
+
+    // Fuzzy name + make/model similarity
+    const nameSim = strSimilarity(data.name.toLowerCase(), (p.name || '').toLowerCase());
+    if (nameSim > 0.75) return true;
+
+    // Same category + make + model
+    if (data.category && data.make && data.model &&
+        data.category === p.category &&
+        data.make.toLowerCase() === (p.make || '').toLowerCase() &&
+        data.model.toLowerCase() === (p.model || '').toLowerCase()) return true;
+
+    return false;
+  }).slice(0, 3); // show max 3
+}
+
+// Simple bigram similarity
+function strSimilarity(a, b) {
+  if (!a || !b) return 0;
+  if (a === b) return 1;
+  const bigrams = s => {
+    const bg = new Set();
+    for (let i = 0; i < s.length - 1; i++) bg.add(s[i] + s[i+1]);
+    return bg;
+  };
+  const ba = bigrams(a), bb = bigrams(b);
+  let inter = 0;
+  ba.forEach(g => { if (bb.has(g)) inter++; });
+  return (2 * inter) / (ba.size + bb.size);
+}
+
+function getFormData() {
+  return {
+    name: document.getElementById('f-name').value.trim(),
+    category: document.getElementById('f-category').value,
+    condition: document.getElementById('f-condition').value,
+    make: document.getElementById('f-make').value.trim(),
+    model: document.getElementById('f-model').value.trim(),
+    year: document.getElementById('f-year').value.trim(),
+    oemnum: getOemString(),
+    location: document.getElementById('f-location').value.trim(),
+    qty: parseInt(document.getElementById('f-qty').value) || 1,
+    price: parseFloat(document.getElementById('f-price').value) || 0,
+    notes: document.getElementById('f-notes').value.trim(),
+    updatedAt: new Date().toISOString()
+  };
+}
+
+function clearForm() {
+  ['f-name','f-make','f-model','f-year','f-location','f-notes','f-price'].forEach(id => {
+    document.getElementById(id).value = '';
+  });
+  document.getElementById('f-qty').value = 1;
+  selectCondition('New');
+  document.getElementById('f-category').value = '';
+  setOemFromString('');
+  document.getElementById('ai-status').style.display = 'none';
+  document.getElementById('location-suggestion').style.display = 'none';
+  suggestedLocation = null;
+}
+
+function editPart(id) {
+  if (!isAdmin()) { toast('Only admins can edit parts'); return; }
+  const p = parts.find(x=>x.id===id);
+  if(!p) return;
+  editingId = id;
+  document.getElementById('f-name').value = p.name || '';
+  document.getElementById('f-category').value = p.category || '';
+  selectCondition(p.condition || 'New');
+  document.getElementById('f-make').value = p.make || '';
+  document.getElementById('f-model').value = p.model || '';
+  document.getElementById('f-year').value = p.year || '';
+  setOemFromString(p.oemnum || '');
+  document.getElementById('f-location').value = p.location || '';
+  document.getElementById('f-qty').value = p.qty ?? 1;
+  document.getElementById('f-price').value = p.price || '';
+  document.getElementById('f-notes').value = p.notes || '';
+  document.getElementById('form-mode-label').textContent = 'EDITING: ' + id;
+  document.getElementById('cancel-edit-btn').style.display = 'inline-block';
+  switchView('add');
+  window.scrollTo(0,0);
+}
+
+// ===== DELETE =====
+function deletePart(id) {
+  if (!isAdmin()) { toast('Only admins can delete parts'); return; }
+  const p = parts.find(x=>x.id===id);
+  if(!p) return;
+  deleteTargetId = id;
+  document.getElementById('delete-part-name').textContent = p.name;
+  openModal('delete-modal');
+}
+
+function confirmDelete() {
+  if (!deleteTargetId) return;
+  const _delPart = parts.find(x => x.id === deleteTargetId);
+  const _id = deleteTargetId;
+  parts = parts.filter(p=>p.id!==_id);
+  deleteFromDb(_id);
+  if (_delPart) logActivity(_id, _delPart.name, 'deleted', '');
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(parts));
+  updateStats();
+  renderInventory();
+  renderSheet();
+  closeModal('delete-modal');
+  toast('Part deleted');
+  deleteTargetId = null;
+}
+
+// ===== QR CODE =====
+function showQR(id) {
+  const p = parts.find(x=>x.id===id);
+  if(!p) return;
+
+  zebraCurrentPart = p;
+  document.getElementById('zebra-status').style.display = 'none';
+  loadZebraConfig();
+
+  document.getElementById('qr-part-name').textContent = p.name;
+  document.getElementById('qr-part-sub').textContent = [p.make, p.model, p.year].filter(Boolean).join(' · ') || p.category || '';
+
+  // Label preview
+  document.getElementById('label-name-text').textContent = p.name.toUpperCase();
+  document.getElementById('label-detail-text').textContent = [p.make, p.model, p.year].filter(Boolean).join(' ') || p.category || '';
+  document.getElementById('label-id-text').textContent = p.id + (p.oemnum ? ' | OEM: ' + p.oemnum : '');
+  document.getElementById('label-loc-text').textContent = p.location ? '📍 ' + p.location : '';
+
+  // Generate QR for label — encode full URL so phone camera opens the right part
+  const labelQrEl = document.getElementById('label-qr');
+  labelQrEl.innerHTML = '';
+  const partUrl = window.location.origin + window.location.pathname + '?part=' + p.id;
+  new QRCode(labelQrEl, {
+    text: partUrl,
+    width: 80,
+    height: 80,
+    colorDark: '#000000',
+    colorLight: '#ffffff',
+    correctLevel: QRCode.CorrectLevel.M
+  });
+
+  openModal('qr-modal');
+}
+
+function generatePDF() {
+  const canvas = document.querySelector('#label-qr canvas');
+  if (!canvas) { toast('QR not ready yet, try again'); return; }
+  const qrDataUrl = canvas.toDataURL('image/png');
+
+  const name    = document.getElementById('label-name-text').textContent;
+  const detail  = document.getElementById('label-detail-text').textContent;
+  const idText  = document.getElementById('label-id-text').textContent;
+  const locText = document.getElementById('label-loc-text').textContent;
+
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: [90, 40] });
+
+  doc.setFillColor(255, 255, 255);
+  doc.rect(0, 0, 90, 40, 'F');
+  doc.setDrawColor(0, 0, 0);
+  doc.setLineWidth(0.4);
+  doc.rect(1, 1, 88, 38);
+
+  doc.addImage(qrDataUrl, 'PNG', 3, 3, 32, 32);
+
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(10);
+  doc.setTextColor(0, 0, 0);
+  const nameLines = doc.splitTextToSize(name, 50);
+  doc.text(nameLines, 38, 8);
+
+  if (detail) {
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(7);
+    doc.setTextColor(80, 80, 80);
+    doc.text(detail, 38, 8 + (nameLines.length * 4) + 2);
+  }
+
+  doc.setFont('courier', 'normal');
+  doc.setFontSize(6);
+  doc.setTextColor(120, 120, 120);
+  doc.text(idText, 38, 28);
+
+  if (locText) {
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(6.5);
+    doc.setTextColor(60, 60, 60);
+    doc.text(locText, 38, 33);
+  }
+
+  // Instead of doc.save() (blocked in iframes), build a blob URL
+  // the user can tap to open/download natively.
+  const pdfBlob = doc.output('blob');
+  const blobUrl = URL.createObjectURL(pdfBlob);
+
+  const linkEl = document.getElementById('pdf-download-link');
+  const filename = name.replace(/[^a-z0-9]/gi, '_').toLowerCase() + '_label.pdf';
+  linkEl.href = blobUrl;
+  linkEl.download = filename;
+
+  document.getElementById('pdf-link-area').style.display = 'block';
+  toast('PDF ready — tap OPEN PDF');
+}
+
+let labelQrEl;
+
+// ===== ZEBRA PRINTING =====
+// 2" x 1" label @ 203dpi = 406 x 203 dots
+const LABEL_W_DOTS = 406;
+const LABEL_H_DOTS = 203;
+
+let zebraCurrentPart = null;
+
+function buildZPL(p) {
+  const name   = (p.name || '').substring(0, 28).toUpperCase();
+  const make   = [p.make, p.model, p.year].filter(Boolean).join(' ').substring(0, 30);
+  const loc    = (p.location || '').substring(0, 28);
+  const oem    = (p.oemnum ? p.oemnum.split(',')[0].trim() : '').substring(0, 22);
+  const partId = p.id || '';
+  const partUrl = window.location.origin + window.location.pathname + '?part=' + partId;
+
+  return [
+    '^XA',
+    `^PW${LABEL_W_DOTS}`,
+    `^LL${LABEL_H_DOTS}`,
+    '^CI28',
+    `^FO8,6^A0N,18,18^FD${name}^FS`,
+    `^FO8,28^A0N,13,13^FD${make}^FS`,
+    oem   ? `^FO8,44^A0N,11,11^FDOWN: ${oem}^FS` : '',
+    loc   ? `^FO8,58^A0N,11,11^FD\u2022 ${loc}^FS` : '',
+    `^FO8,74^A0N,11,11^FDID: ${partId}^FS`,
+    `^FO8,88^A0N,10,10^FDQty: ${p.qty ?? 1}${p.price ? '  $' + parseFloat(p.price).toLocaleString() : ''}^FS`,
+    '^FO268,4^BQN,2,4',
+    `^FDQA,${partUrl}^FS`,
+    '^XZ'
+  ].filter(Boolean).join('\n');
+}
+
+function saveZebraConfig() {
+  const mode = document.getElementById('zebra-mode').value;
+  const ip   = document.getElementById('zebra-ip-input').value.trim();
+  const port = document.getElementById('zebra-port').value;
+  localStorage.setItem('zebra_mode', mode);
+  localStorage.setItem('zebra_ip',   ip);
+  localStorage.setItem('zebra_port', port);
+  document.getElementById('zebra-wifi-row').style.display = mode === 'wifi' ? 'flex' : 'none';
+  document.getElementById('zebra-bp-row').style.display   = mode === 'browserprint' ? 'block' : 'none';
+}
+
+function loadZebraConfig() {
+  const mode = localStorage.getItem('zebra_mode') || 'wifi';
+  const ip   = localStorage.getItem('zebra_ip')   || '';
+  const port = localStorage.getItem('zebra_port') || '80';
+  document.getElementById('zebra-mode').value     = mode;
+  document.getElementById('zebra-ip-input').value = ip;
+  document.getElementById('zebra-port').value     = port;
+  document.getElementById('zebra-wifi-row').style.display = mode === 'wifi' ? 'flex' : 'none';
+  document.getElementById('zebra-bp-row').style.display   = mode === 'browserprint' ? 'block' : 'none';
+}
+
+async function printZebra() {
+  const statusEl = document.getElementById('zebra-status');
+  const setStatus = (type, msg) => {
+    statusEl.style.display = 'block';
+    statusEl.innerHTML = msg;
+    statusEl.style.borderLeftColor = type === 'ok' ? 'var(--green)' : type === 'error' ? 'var(--red)' : 'var(--accent)';
+    statusEl.style.color = type === 'loading' ? 'var(--muted)' : '#ccc';
+  };
+
+  if (!zebraCurrentPart) { setStatus('error', '⚠ No part loaded'); return; }
+
+  const mode = document.getElementById('zebra-mode').value;
+  const zpl  = buildZPL(zebraCurrentPart);
+
+  // ── WiFi / direct IP ──────────────────────────────────────────────
+  if (mode === 'wifi') {
+    const ip   = document.getElementById('zebra-ip-input').value.trim();
+    const port = document.getElementById('zebra-port').value;
+    if (!ip) {
+      setStatus('error', '⚠ Enter your printer\'s IP address below first.');
+      return;
+    }
+
+    setStatus('loading', `🔌 Connecting to ${ip}:${port}...`);
+
+    if (port === '80') {
+      // Zebra HTTP server (ZebraLink) — POST ZPL to /pstprnt
+      try {
+        const res = await fetch(`http://${ip}/pstprnt`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain' },
+          body: zpl
+        });
+        if (res.ok || res.status === 200 || res.type === 'opaque') {
+          setStatus('ok', `✓ Label sent to ${ip}`);
+          toast('Label printed ✓');
+        } else {
+          throw new Error('HTTP ' + res.status);
+        }
+      } catch(err) {
+        // CORS will block even successful prints — treat network errors as likely success
+        if (err.message.includes('NetworkError') || err.message.includes('Failed to fetch') || err.message.includes('CORS') || err.name === 'TypeError') {
+          setStatus('ok', `✓ Job sent to ${ip} — check printer for output.<br><span style="font-size:10px;color:var(--muted);">Browser CORS blocks the response confirmation, but the job was sent.</span>`);
+          toast('Label sent ✓');
+        } else {
+          setStatus('error', `⚠ Could not reach printer at ${ip}. Check IP and that printer is on the same WiFi.<br><span style="font-size:10px;">Error: ${err.message}</span>`);
+        }
+      }
+
+    } else {
+      // Port 9100 — raw TCP, not possible from browser directly
+      setStatus('error',
+        `⚠ Browsers can't send raw TCP to port 9100 directly.<br>` +
+        `Switch to <strong>Port 80</strong> (most Zebra WiFi printers support it), ` +
+        `or use <strong>Browser Print</strong> mode on desktop.`
+      );
+    }
+    return;
+  }
+
+  // ── Browser Print (desktop) ───────────────────────────────────────
+  setStatus('loading', '🔌 Connecting to Zebra Browser Print...');
+  const BP = 'http://localhost:9100';
+
+  try {
+    const devRes = await fetch(`${BP}/available`, { method: 'GET' }).catch(() => null);
+
+    if (!devRes || !devRes.ok) {
+      setStatus('error',
+        '⚠ Cannot reach Browser Print — is it running in your system tray?<br>' +
+        '<a href="https://www.zebra.com/us/en/support-downloads/software/developer-tools/browser-print.html" ' +
+        'target="_blank" style="color:var(--accent-bright);">Download Browser Print →</a>'
+      );
+      return;
+    }
+
+    const devices = await devRes.json();
+    const printer = devices?.printer?.[0] || devices?.[0];
+    if (!printer) {
+      setStatus('error', '⚠ No printer found in Browser Print. Connect your Zebra and try again.');
+      return;
+    }
+
+    setStatus('loading', `🖨 Sending to <strong style="color:#fff">${printer.name || 'Zebra'}</strong>...`);
+
+    const printRes = await fetch(`${BP}/write`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ device: printer, data: zpl })
+    });
+
+    if (!printRes.ok) throw new Error('HTTP ' + printRes.status);
+    setStatus('ok', `✓ Label sent to <strong style="color:#fff">${printer.name || 'Zebra'}</strong>`);
+    toast('Label printed ✓');
+
+  } catch(err) {
+    setStatus('error', '⚠ Browser Print error: ' + err.message);
+  }
+}
+
+// ===== SCANNER =====
+function startScanner() {
+  document.getElementById('start-scan-btn').style.display = 'none';
+  document.getElementById('stop-scan-btn').style.display = 'inline-block';
+
+  scanner = new Html5Qrcode('qr-reader');
+  scanner.start(
+    { facingMode: 'environment' },
+    { fps: 10, qrbox: { width: 220, height: 220 } },
+    (decodedText) => {
+      stopScanner();
+      handleScanResult(decodedText);
+    },
+    (err) => {}
+  ).catch(err => {
+    toast('Camera error: ' + err);
+    document.getElementById('start-scan-btn').style.display = 'inline-block';
+    document.getElementById('stop-scan-btn').style.display = 'none';
+  });
+}
+
+function stopScanner() {
+  if(scanner) {
+    scanner.stop().catch(()=>{});
+    scanner = null;
+  }
+  document.getElementById('start-scan-btn').style.display = 'inline-block';
+  document.getElementById('stop-scan-btn').style.display = 'none';
+}
+
+function lookupManual() {
+  const val = document.getElementById('manual-id-input').value.trim().toUpperCase();
+  if(!val) return;
+  handleScanResult(val);
+}
+
+function handleScanResult(raw) {
+  // QR codes encode a full URL — extract just the part ID from ?part= param
+  let id = raw.trim().toUpperCase();
+  try {
+    const url = new URL(raw);
+    const param = url.searchParams.get('part');
+    if (param) id = param.toUpperCase();
+  } catch(e) {
+    // Not a URL — treat the raw value as the ID directly
+  }
+  const p = parts.find(x=>x.id===id);
+  const resultEl = document.getElementById('scan-result');
+  const contentEl = document.getElementById('scan-result-content');
+  scannedPartId = id;
+
+  if(!p) {
+    contentEl.innerHTML = `<div style="color:var(--red);font-family:'Barlow Condensed',sans-serif;font-size:16px;">No part found with ID: ${esc(id)}</div>`;
+    resultEl.classList.add('visible');
+    return;
+  }
+
+  contentEl.innerHTML = `
+    <div class="detail-id">${p.id} · ${p.category || 'Uncategorized'}</div>
+    <div style="font-family:'Barlow Condensed',sans-serif;font-size:26px;font-weight:900;margin-bottom:12px;">${esc(p.name)}</div>
+    <div class="detail-grid" style="margin-bottom:12px;">
+      <div class="detail-field"><div class="detail-label">Condition</div><div class="detail-value">${p.condition}</div></div>
+      <div class="detail-field"><div class="detail-label">Location</div><div class="detail-value">${p.location || '—'}</div></div>
+      <div class="detail-field"><div class="detail-label">Make / Model</div><div class="detail-value">${[p.make,p.model].filter(Boolean).join(' ') || '—'}</div></div>
+      <div class="detail-field"><div class="detail-label">Year</div><div class="detail-value">${p.year || '—'}</div></div>
+      <div class="detail-field"><div class="detail-label">OEM#</div><div class="detail-value">${p.oemnum || '—'}</div></div>
+      <div class="detail-field"><div class="detail-label">Qty</div><div class="detail-value">${p.qty ?? 1}</div></div>
+    </div>
+    ${p.notes ? `<div style="font-size:13px;color:var(--muted);">Notes: <span style="color:var(--text);">${esc(p.notes)}</span></div>` : ''}
+  `;
+  resultEl.classList.add('visible');
+}
+
+function editScannedPart() {
+  if(scannedPartId) editPart(scannedPartId);
+}
+
+function showQRForScanned() {
+  if(scannedPartId) showQR(scannedPartId);
+}
+
+// ===== MODAL HELPERS =====
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) {
+  document.getElementById(id).classList.remove('open');
+  if (id === 'qr-modal') {
+    document.getElementById('pdf-link-area').style.display = 'none';
+  }
+}
+
+document.querySelectorAll('.modal-overlay').forEach(el => {
+  el.addEventListener('click', e => { if(e.target === el) el.classList.remove('open'); });
+});
+
+// ===== TOAST =====
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 2500);
+}
+
+function toggleAiSettings() {
+  const panel = document.getElementById('ai-settings-panel');
+  const arrow = document.getElementById('ai-settings-arrow');
+  const open = panel.style.display === 'none';
+  panel.style.display = open ? 'block' : 'none';
+  arrow.textContent = open ? '▲' : '▼';
+}
+
+function updateAiKeyStatus() {
+  const key = document.getElementById('api-key-input').value.trim();
+  const el = document.getElementById('ai-key-status');
+  if (!key) {
+    el.innerHTML = '<span style="color:var(--muted);">No key set — AI features disabled.</span>';
+  } else if (key.startsWith('sk-ant-')) {
+    el.innerHTML = '<span style="color:var(--green);">✓ Key looks valid — AI features enabled.</span>';
+  } else {
+    el.innerHTML = '<span style="color:#cc2222);">⚠ Key format unexpected — check and re-paste.</span>';
+  }
+}
+
+// ===== SHARED API HELPER =====
+async function fetchWithRetry(apiKey, body, statusFn, attempt = 1) {
+  const response = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': apiKey,
+      'anthropic-version': '2023-06-01',
+      'anthropic-dangerous-direct-browser-access': 'true'
+    },
+    body: JSON.stringify(body)
+  });
+
+  if (response.status === 429 || response.status === 529) {
+    if (attempt < 4) {
+      const wait = attempt * 15; // 15s → 30s → 45s
+      await countdownRetry(statusFn, wait, attempt);
+      return fetchWithRetry(apiKey, body, statusFn, attempt + 1);
+    }
+    throw new Error('RATE_LIMIT');
+  }
+
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err.error?.message || 'API error ' + response.status);
+  }
+
+  return response.json();
+}
+
+async function countdownRetry(statusFn, seconds, attempt) {
+  for (let s = seconds; s > 0; s--) {
+    statusFn('loading', `⏱ Rate limit — auto-retrying in <strong style="color:#fff">${s}s</strong>… (attempt ${attempt}/3)`);
+    await new Promise(r => setTimeout(r, 1000));
+  }
+  statusFn('loading', '🔄 Retrying now…');
+}
+
+// ===== LOCATION SUGGESTION =====
+let suggestedLocation = null;
+
+function suggestLocation() {
+  // Only suggest if location field is empty
+  if (document.getElementById('f-location').value.trim()) return;
+
+  const category = document.getElementById('f-category').value;
+  const make     = document.getElementById('f-make').value.trim().toLowerCase();
+
+  if (!parts.length) return;
+  const candidates = parts.filter(p => p.location);
+  if (!candidates.length) return;
+
+  // Score each candidate part by relevance
+  const scored = candidates.map(p => {
+    let score = 0;
+    const pMake = (p.make || '').toLowerCase();
+    if (make && pMake && pMake === make) score += 3;
+    if (category && p.category === category) score += 2;
+    if (make && pMake && pMake.includes(make)) score += 1;
+    return { ...p, score };
+  }).filter(p => p.score > 0).sort((a, b) => b.score - a.score);
+
+  if (!scored.length) return;
+
+  // Group by location and count
+  const locCount = {};
+  const locScore = {};
+  scored.forEach(p => {
+    locCount[p.location] = (locCount[p.location] || 0) + 1;
+    locScore[p.location] = (locScore[p.location] || 0) + p.score;
+  });
+
+  // Pick best location by combined score × count
+  const best = Object.entries(locScore)
+    .sort((a, b) => (b[1] * (locCount[b[0]] || 1)) - (a[1] * (locCount[a[0]] || 1)))[0];
+
+  if (!best) return;
+
+  const loc = best[0];
+  const count = locCount[loc];
+  suggestedLocation = loc;
+
+  // Build reason string
+  const makeLabel = make ? `${make.charAt(0).toUpperCase() + make.slice(1)} ` : '';
+  const catLabel  = category ? category.toLowerCase() + ' ' : '';
+  const reason = `📍 ${count} other ${makeLabel}${catLabel}part${count !== 1 ? 's' : ''} stored here`;
+
+  document.getElementById('location-suggestion-text').innerHTML =
+    `<strong style="color:var(--green);">${esc(loc)}</strong> &nbsp;—&nbsp; ${reason}`;
+  document.getElementById('location-suggestion').style.display = 'block';
+}
+
+function useLocationSuggestion() {
+  if (suggestedLocation) {
+    document.getElementById('f-location').value = suggestedLocation;
+    document.getElementById('location-suggestion').style.display = 'none';
+    suggestedLocation = null;
+  }
+}
+
+// ===== FORM HELPERS =====
+function selectCondition(val) {
+  document.getElementById('f-condition').value = val;
+  document.querySelectorAll('.cond-btn').forEach(btn => {
+    const isActive = btn.dataset.val === val;
+    btn.classList.toggle('active', isActive);
+    btn.textContent = (isActive ? '✓ ' : '') + btn.dataset.val;
+  });
+}
+
+function adjustQty(delta) {
+  const input = document.getElementById('f-qty');
+  const current = parseInt(input.value) || 0;
+  input.value = Math.max(0, current + delta);
+}
+
+// ===== OEM TAG INPUT =====
+let oemTags = [];
+
+function handleOemKeydown(e) {
+  if (e.key === 'Enter' || e.key === ',') {
+    e.preventDefault();
+    addOemTag();
+  } else if (e.key === 'Backspace' && e.target.value === '' && oemTags.length) {
+    removeOemTag(oemTags.length - 1);
+  }
+}
+
+function addOemTag(val) {
+  const input = document.getElementById('oem-tag-input');
+  const raw = (val !== undefined ? val : input.value).replace(/,/g, '').trim().toUpperCase();
+  if (!raw || oemTags.includes(raw)) { if (val === undefined) input.value = ''; return; }
+  oemTags.push(raw);
+  renderOemTags();
+  if (val === undefined) input.value = '';
+  onOemInput();
+}
+
+function removeOemTag(idx) {
+  oemTags.splice(idx, 1);
+  renderOemTags();
+  onOemInput();
+}
+
+function renderOemTags() {
+  document.getElementById('oem-tags').innerHTML = oemTags.map((tag, i) => `
+    <span class="oem-tag" onclick="removeOemTag(${i})" title="Click to remove">
+      ${esc(tag)} <span class="oem-tag-x">✕</span>
+    </span>`).join('');
+}
+
+function getOemString() {
+  const input = document.getElementById('oem-tag-input');
+  if (input.value.trim()) addOemTag();
+  return oemTags.join(', ');
+}
+
+function setOemFromString(str) {
+  oemTags = str ? str.split(',').map(s => s.trim().toUpperCase()).filter(Boolean) : [];
+  renderOemTags();
+  const input = document.getElementById('oem-tag-input');
+  if (input) input.value = '';
+  onOemInput();
+}
+
+// ===== AI PART LOOKUP =====
+function onOemInput() {
+  const inputVal = (document.getElementById('oem-tag-input').value || '').trim();
+  document.getElementById('ai-lookup-btn').disabled = oemTags.length === 0 && inputVal.length < 3;
+}
+
+async function aiLookupPart() {
+  const input = document.getElementById('oem-tag-input');
+  if (input.value.trim()) addOemTag();
+  const oemList = oemTags.join(', ');
+  if (!oemList) return;
+
+  const btn = document.getElementById('ai-lookup-btn');
+
+  // ── Check inventory cache first ──────────────────────────────────
+  const searchOems = oemTags.map(t => t.toUpperCase());
+  const cached = parts.find(p => {
+    if (!p.oemnum) return false;
+    const partOems = p.oemnum.split(',').map(s => s.trim().toUpperCase());
+    return searchOems.some(o => partOems.includes(o));
+  });
+
+  if (cached && !editingId) {
+    // Found in inventory — fill from cache, no API call
+    const fill = (id, val) => { if (val && !document.getElementById(id).value) document.getElementById(id).value = val; };
+    fill('f-name', cached.name);
+    fill('f-category', cached.category);
+    fill('f-make', cached.make);
+    fill('f-model', cached.model);
+    fill('f-year', cached.year);
+    fill('f-notes', cached.notes);
+    if (cached.price && !document.getElementById('f-price').value)
+      document.getElementById('f-price').value = parseFloat(cached.price).toFixed(2);
+    if (cached.condition) selectCondition(cached.condition);
+
+    setAiStatus('success',
+      `📦 Found in your inventory: <strong style="color:#fff">${esc(cached.name)}</strong> — ` +
+      `filled from existing record · <span style="color:var(--muted);font-size:10px;">no API call used</span>`
+    );
+    suggestLocation();
+    return;
+  }
+
+  // ── Not in inventory — call API ──────────────────────────────────
+  const apiKey = ANTHROPIC_API_KEY || document.getElementById('api-key-input').value.trim() || localStorage.getItem('rm_apikey') || '';
+  if (!apiKey) {
+    setAiStatus('error', '⚠ Add your Anthropic API key in AI Settings above.');
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = '⏳ LOOKING UP...';
+  const isAssembly = oemTags.length > 1;
+  setAiStatus('loading', `🔍 Looking up ${isAssembly ? 'assembly' : 'part'}: ${oemList}...`);
+
+  const prompt = isAssembly
+    ? `These OEM part numbers form a motorcycle assembly: ${oemList}. Identify the assembly and estimate current market value. Return ONLY JSON, no markdown:
+{"name":"","category":"Engine|Suspension|Brakes|Electrical|Body/Fairings|Exhaust|Drivetrain|Frame/Chassis|Accessories|Other","make":"","model":"","year":"","price_usd":0,"notes":"what this assembly is and what components it includes","confidence":"high|medium|low"}`
+    : `Identify motorcycle OEM part number "${oemList}" and find its current market price. Return ONLY JSON, no markdown:
+{"name":"","category":"Engine|Suspension|Brakes|Electrical|Body/Fairings|Exhaust|Drivetrain|Frame/Chassis|Accessories|Other","make":"","model":"","year":"","price_usd":0,"notes":"","confidence":"high|medium|low"}`;
+
+  try {
+    const data = await fetchWithRetry(apiKey, {
+      model: 'claude-sonnet-4-5-20250929',
+      max_tokens: 1000,
+      tools: [{ type: 'web_search_20250305', name: 'web_search' }],
+      messages: [{ role: 'user', content: prompt }]
+    }, setAiStatus);
+
+    const text = data.content.filter(b => b.type === 'text').map(b => b.text).join('');
+    const jsonMatch = text.replace(/```json|```/g, '').match(/\{[\s\S]*\}/);
+    if (!jsonMatch) throw new Error('No JSON in response');
+    const part = JSON.parse(jsonMatch[0]);
+
+    const fill = (id, val) => { if (val && !document.getElementById(id).value) document.getElementById(id).value = val; };
+    fill('f-name', part.name);
+    fill('f-category', part.category);
+    fill('f-make', part.make);
+    fill('f-model', part.model);
+    fill('f-year', part.year);
+    fill('f-notes', part.notes);
+    if (part.price_usd && !document.getElementById('f-price').value) {
+      document.getElementById('f-price').value = parseFloat(part.price_usd).toFixed(2);
+    }
+
+    const confColor = { high: '#22cc66', medium: '#cc2222', low: '#ff6666' };
+    const conf = part.confidence || 'medium';
+    const priceStr = part.price_usd ? ` · Est. <strong style="color:var(--green);">$${parseFloat(part.price_usd).toLocaleString()}</strong>` : '';
+    setAiStatus('success',
+      `✓ ${isAssembly ? 'Assembly' : 'Part'}: <strong style="color:#fff">${esc(part.name)}</strong>${priceStr} — ` +
+      `Confidence: <span style="color:${confColor[conf]};font-weight:700;text-transform:uppercase;">${conf}</span>`
+    );
+
+    suggestLocation();
+
+  } catch(err) {
+    if (err.message === 'RATE_LIMIT') {
+      setAiStatus('error', '⏱ Still rate limited after 3 retries. Wait a minute then try again, or <a href="https://console.anthropic.com/settings/billing" target="_blank" style="color:var(--accent-bright);">upgrade your tier</a>.');
+    } else {
+      setAiStatus('error', '⚠ Lookup failed: ' + (err.message || 'Unknown error'));
+    }
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '⚡ AI FILL';
+  }
+}
+
+function setAiStatus(type, html) {
+  const el = document.getElementById('ai-status');
+  el.style.display = 'block';
+  el.innerHTML = html;
+  el.style.borderLeftColor = type === 'success' ? 'var(--green)' : type === 'error' ? 'var(--red)' : 'var(--accent)';
+  el.style.color = type === 'loading' ? 'var(--muted)' : '#ccc';
+}
+
+// ===== SPREADSHEET =====
+let sheetSortCol = 'name';
+let sheetSortAsc = true;
+
+function renderSheet() {
+  const search = document.getElementById('sheet-search').value.toLowerCase();
+  const catF = document.getElementById('sheet-filter-cat').value;
+  const condF = document.getElementById('sheet-filter-cond').value;
+
+  let rows = parts.filter(p => {
+    const text = [p.id, p.name, p.make, p.model, p.location, p.oemnum, p.category, p.notes, p.year].join(' ').toLowerCase();
+    return (!search || text.includes(search))
+      && (!catF || p.category === catF)
+      && (!condF || p.condition === condF);
+  });
+
+  // Sort
+  rows.sort((a, b) => {
+    let av = (a[sheetSortCol] ?? '').toString().toLowerCase();
+    let bv = (b[sheetSortCol] ?? '').toString().toLowerCase();
+    if (sheetSortCol === 'qty') { av = parseFloat(a.qty) || 0; bv = parseFloat(b.qty) || 0; }
+    if (av < bv) return sheetSortAsc ? -1 : 1;
+    if (av > bv) return sheetSortAsc ? 1 : -1;
+    return 0;
+  });
+
+  // Update sort arrows
+  document.querySelectorAll('.sheet-table th[data-col]').forEach(th => {
+    th.classList.toggle('sort-active', th.dataset.col === sheetSortCol);
+    const arrow = th.querySelector('.sort-arrow');
+    if (arrow) {
+      arrow.textContent = th.dataset.col === sheetSortCol ? (sheetSortAsc ? ' ▲' : ' ▼') : '';
+    }
+  });
+
+  const tbody = document.getElementById('sheet-body');
+  if (rows.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="12" class="sheet-empty">No parts found</td></tr>`;
+    document.getElementById('sheet-count').textContent = '0 parts';
+    return;
+  }
+
+  const condClass = { New: 'cond-new', Used: 'cond-used', Damaged: 'cond-damaged' };
+
+  tbody.innerHTML = rows.map(p => `
+    <tr>
+      <td class="td-id">${esc(p.id)}</td>
+      <td class="td-name">${esc(p.name)}</td>
+      <td>${esc(p.category || '—')}</td>
+      <td><span class="sheet-cond ${condClass[p.condition] || ''}">${esc(p.condition)}</span></td>
+      <td>${esc(p.make || '—')}</td>
+      <td>${esc(p.model || '—')}</td>
+      <td>${esc(p.year || '—')}</td>
+      <td style="font-family:monospace;font-size:11px;">${esc(p.oemnum || '—')}</td>
+      <td>${esc(p.location || '—')}</td>
+      <td class="td-qty">${p.qty ?? 1}</td>
+      <td style="color:var(--green);font-weight:700;">${p.price ? '$'+parseFloat(p.price).toLocaleString() : '—'}</td>
+      <td class="td-notes">${esc(p.notes || '')}</td>
+      <td class="td-actions">
+        ${isAdmin() ? `<button class="btn btn-ghost" onclick="editPart('${p.id}')">EDIT</button>` : ''}
+        <button class="btn btn-ghost" onclick="showQR('${p.id}')">QR</button>
+        ${isAdmin() ? `<button class="btn btn-danger" onclick="deletePart('${p.id}')">✕</button>` : ''}
+      </td>
+    </tr>
+  `).join('');
+
+  document.getElementById('sheet-count').textContent = `${rows.length} of ${parts.length} parts`;
+}
+
+function sortSheet(col) {
+  if (sheetSortCol === col) {
+    sheetSortAsc = !sheetSortAsc;
+  } else {
+    sheetSortCol = col;
+    sheetSortAsc = true;
+  }
+  renderSheet();
+}
+
+// ===== CSV EXPORT =====
+function exportCSV() {
+  if (!isAdmin()) { toast('Export is restricted to admins'); return; }
+  if (parts.length === 0) { toast('No parts to export'); return; }
+  const cols = ['id','name','category','condition','make','model','year','oemnum','location','qty','price','notes','createdAt'];
+  const header = cols.join(',');
+  const csvRows = parts.map(p =>
+    cols.map(c => {
+      const val = (p[c] ?? '').toString().replace(/"/g, '""');
+      return `"${val}"`;
+    }).join(',')
+  );
+  const csv = [header, ...csvRows].join('\n');
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'riders_miami_inventory_' + new Date().toISOString().slice(0,10) + '.csv';
+  a.click();
+  URL.revokeObjectURL(url);
+  toast('CSV exported ✓');
+}
+
+// ===== CSV IMPORT =====
+function importCSV(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const text = e.target.result;
+      const lines = text.trim().split('\n');
+      const headers = lines[0].split(',').map(h => h.replace(/^"|"$/g,'').trim().toLowerCase());
+
+      const idx = (name) => headers.indexOf(name);
+
+      const imported = [];
+      for (let i = 1; i < lines.length; i++) {
+        const row = parseCSVRow(lines[i]);
+        if (!row || !row[idx('name')]) continue;
+        const existingId = row[idx('id')];
+        const existIdx = existingId ? parts.findIndex(p => p.id === existingId.toUpperCase()) : -1;
+
+        const p = {
+          id: (existingId && existingId.trim()) ? existingId.trim().toUpperCase() : generateId(),
+          name: row[idx('name')] || '',
+          category: row[idx('category')] || '',
+          condition: row[idx('condition')] || 'Used',
+          make: row[idx('make')] || '',
+          model: row[idx('model')] || '',
+          year: row[idx('year')] || '',
+          oemnum: row[idx('oemnum')] || '',
+          location: row[idx('location')] || '',
+          qty: parseInt(row[idx('qty')]) || 1,
+          price: parseFloat(row[idx('price')]) || 0,
+          notes: row[idx('notes')] || '',
+          createdAt: row[idx('createdat')] || new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        };
+
+        if (existIdx !== -1) {
+          parts[existIdx] = p;
+        } else {
+          imported.push(p);
+        }
+      }
+
+      parts = [...imported, ...parts.filter(p => !imported.find(i => i.id === p.id))];
+      saveData();
+      renderSheet();
+      renderInventory();
+      toast(`Imported ${imported.length} parts ✓`);
+    } catch(err) {
+      toast('Import error: ' + err.message);
+    }
+    event.target.value = '';
+  };
+  reader.readAsText(file);
+}
+
+function parseCSVRow(line) {
+  const result = [];
+  let cur = '';
+  let inQuotes = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (ch === '"') {
+      if (inQuotes && line[i+1] === '"') { cur += '"'; i++; }
+      else inQuotes = !inQuotes;
+    } else if (ch === ',' && !inQuotes) {
+      result.push(cur.trim());
+      cur = '';
+    } else {
+      cur += ch;
+    }
+  }
+  result.push(cur.trim());
+  return result;
+}
+
+// ===== EBAY PHOTO UPLOAD =====
+let ebayPhotos = []; // { base64, mime, dataUrl }
+const EBAY_MAX_PHOTOS = 12;
+
+function handleEbayPhotos(files) {
+  if (!files || !files.length) return;
+  const remaining = EBAY_MAX_PHOTOS - ebayPhotos.length;
+  const toAdd = Array.from(files).slice(0, remaining).filter(f => f.type.startsWith('image/'));
+  if (!toAdd.length) return;
+
+  let loaded = 0;
+  toAdd.forEach(file => {
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      const dataUrl = e.target.result;
+      ebayPhotos.push({
+        base64: dataUrl.split(',')[1],
+        mime: file.type || 'image/jpeg',
+        dataUrl
+      });
+      loaded++;
+      if (loaded === toAdd.length) renderEbayPhotoThumbs();
+    };
+    reader.onerror = function() {
+      loaded++;
+      if (loaded === toAdd.length) renderEbayPhotoThumbs();
+    };
+    reader.readAsDataURL(file);
+  });
+  document.getElementById('ebay-photo-input').value = '';
+}
+
+function renderEbayPhotoThumbs() {
+  const hasPhotos = ebayPhotos.length > 0;
+  document.getElementById('ebay-photo-placeholder').style.display = hasPhotos ? 'none' : 'block';
+  const thumbsEl = document.getElementById('ebay-photo-thumbs');
+  thumbsEl.style.display = hasPhotos ? 'flex' : 'none';
+  thumbsEl.innerHTML = ebayPhotos.map((p, i) => `
+    <div style="position:relative;flex-shrink:0;">
+      <img src="${p.dataUrl}" style="width:64px;height:64px;object-fit:cover;border:2px solid var(--accent);">
+      <button onclick="event.stopPropagation();removeEbayPhoto(${i})" style="position:absolute;top:2px;right:2px;background:rgba(0,0,0,0.8);border:none;color:#fff;width:18px;height:18px;cursor:pointer;font-size:11px;padding:0;line-height:1;">✕</button>
+    </div>
+  `).join('');
+  document.getElementById('ebay-photo-status').textContent =
+    `${ebayPhotos.length}/${EBAY_MAX_PHOTOS} photo${ebayPhotos.length !== 1 ? 's' : ''} · tap zone to add more`;
+}
+
+function removeEbayPhoto(idx) {
+  ebayPhotos.splice(idx, 1);
+  renderEbayPhotoThumbs();
+}
+
+function clearEbayPhotos() {
+  ebayPhotos = [];
+  renderEbayPhotoThumbs();
+  document.getElementById('ebay-photo-input').value = '';
+}
+
+async function uploadPhotoToSupabase(dataUrl, filename) {
+  if (!sb) throw new Error('Supabase not connected');
+  const base64 = dataUrl.split(',')[1];
+  const byteString = atob(base64);
+  const ab = new ArrayBuffer(byteString.length);
+  const ia = new Uint8Array(ab);
+  for (let i = 0; i < byteString.length; i++) ia[i] = byteString.charCodeAt(i);
+  const blob = new Blob([ab], { type: 'image/jpeg' });
+
+  const path = `ebay-photos/${Date.now()}-${filename}`;
+  const { data, error } = await sb.storage.from('parts-photos').upload(path, blob, {
+    contentType: 'image/jpeg',
+    upsert: true
+  });
+  if (error) throw new Error('Photo upload failed: ' + error.message);
+
+  const { data: urlData } = sb.storage.from('parts-photos').getPublicUrl(path);
+  return urlData.publicUrl;
+}
+
+function compressForEbay(dataUrl) {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = function() {
+      const MAX = 1200;
+      let w = img.naturalWidth, h = img.naturalHeight;
+      if (w > MAX || h > MAX) {
+        if (w > h) { h = Math.round(h * MAX / w); w = MAX; }
+        else       { w = Math.round(w * MAX / h); h = MAX; }
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      let quality = 0.8;
+      let result = canvas.toDataURL('image/jpeg', quality);
+      while (result.length > 400000 && quality > 0.3) {
+        quality -= 0.1;
+        result = canvas.toDataURL('image/jpeg', quality);
+      }
+      resolve(result);
+    };
+    img.onerror = () => resolve(dataUrl);
+    img.src = dataUrl;
+  });
+}
+
+// ===== EBAY INTEGRATION =====
+let ebayToken = null;      // { access_token, refresh_token, env, expires_at }
+let ebayCurrentPart = null;
+
+function loadEbayToken() {
+  try {
+    const stored = localStorage.getItem('ebay_token');
+    if (stored) ebayToken = JSON.parse(stored);
+  } catch(e) {}
+}
+
+function saveEbayToken(t) {
+  ebayToken = t;
+  localStorage.setItem('ebay_token', JSON.stringify(t));
+}
+
+function disconnectEbay() {
+  ebayToken = null;
+  localStorage.removeItem('ebay_token');
+  updateEbayAuthUI();
+  toast('eBay disconnected');
+}
+
+function connectEbay(env) {
+  window.location.href = `/.netlify/functions/ebay-auth?env=${env}`;
+}
+
+function updateEbayAuthUI() {
+  // Server-side token — always show listing form
+  const listingEl = document.getElementById('ebay-listing-section');
+  if (listingEl) listingEl.style.display = 'block';
+  // Hide any leftover auth elements safely
+  ['ebay-auth-status','ebay-disconnect-btn'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = 'none';
+  });
+}
+
+function handleEbayCallback() {
+  const params = new URLSearchParams(window.location.search);
+  const tokenParam = params.get('ebay_token');
+  const errorParam = params.get('ebay_error');
+
+  if (tokenParam) {
+    try {
+      const t = JSON.parse(decodeURIComponent(tokenParam));
+      t.expires_at = Date.now() + (t.expires_in * 1000);
+      saveEbayToken(t);
+      toast(`eBay ${t.env} connected ✓`);
+    } catch(e) { toast('eBay auth error: invalid token'); }
+    // Clean URL
+    window.history.replaceState({}, '', window.location.pathname);
+  }
+
+  if (errorParam) {
+    toast('eBay error: ' + decodeURIComponent(errorParam));
+    window.history.replaceState({}, '', window.location.pathname);
+  }
+}
+
+function openEbayListing(partId) {
+  const p = parts.find(x => x.id === partId);
+  if (!p) return;
+  ebayCurrentPart = p;
+
+  document.getElementById('ebay-modal-title').textContent = 'List: ' + p.name;
+  document.getElementById('ebay-submit-status').style.display = 'none';
+  document.getElementById('ebay-ai-status').style.display = 'none';
+  clearEbayPhotos();
+
+  // Pre-fill from part data
+  document.getElementById('ebay-price').value = p.price ? parseFloat(p.price).toFixed(2) : '';
+  document.getElementById('ebay-qty').value   = p.qty ?? 1;
+  document.getElementById('ebay-title').value = '';
+  document.getElementById('ebay-description').value = '';
+  document.getElementById('ebay-title-count').textContent = '';
+
+  const condMap = { New: 'NEW', Used: 'USED_EXCELLENT', Damaged: 'FOR_PARTS_OR_NOT_WORKING' };
+  document.getElementById('ebay-condition').value = condMap[p.condition] || 'USED_EXCELLENT';
+
+  updateEbayAuthUI();
+  openModal('ebay-modal');
+
+  // Auto-generate listing if AI key available
+  const apiKey = ANTHROPIC_API_KEY || document.getElementById('api-key-input').value.trim() || localStorage.getItem('rm_apikey') || '';
+  if (apiKey) aiGenerateListing();
+}
+
+document.getElementById && document.addEventListener('DOMContentLoaded', () => {
+  const titleInput = document.getElementById('ebay-title');
+  if (titleInput) {
+    titleInput.addEventListener('input', () => {
+      const len = titleInput.value.length;
+      const el = document.getElementById('ebay-title-count');
+      el.textContent = `${len}/80`;
+      el.style.color = len > 75 ? '#cc2222' : 'var(--muted)';
+    });
+  }
+});
+
+async function aiGenerateListing() {
+  if (!ebayCurrentPart) return;
+  const p = ebayCurrentPart;
+
+  const apiKey = ANTHROPIC_API_KEY || document.getElementById('api-key-input').value.trim() || localStorage.getItem('rm_apikey') || '';
+  if (!apiKey) {
+    setEbayAiStatus('error', '⚠ Add your Anthropic API key in AI Settings to auto-generate listings.');
+    return;
+  }
+
+  setEbayAiStatus('loading', '⚡ Generating optimized eBay listing...');
+  document.getElementById('ebay-ai-fill-btn').disabled = true;
+
+  const prompt = `Write an eBay listing for this motorcycle part. Return ONLY JSON, no markdown:
+{
+  "title": "max 80 chars, keyword-rich eBay title",
+  "description": "plain text description for eBay, no HTML tags — 2-4 short paragraphs covering what it is, compatibility, condition, and what's included",
+  "categoryId": "use the most specific eBay leaf category ID for this part type. Examples: Exhaust Systems=35615, Handlebars/Grips/Levers=50454, Air Intake/Fuel Delivery=33742, Brakes=10063 is wrong use 33566, Engines/Engine Parts=6684, Electrical/Ignition=26562, Body/Frame=46092, Suspension=66803, Wheels/Tires=66830, General Motorcycle Parts=66471",
+  "conditionDescription": "1-2 sentence condition note"
+}
+
+Part data: ${JSON.stringify({ name: p.name, make: p.make, model: p.model, year: p.year, category: p.category, condition: p.condition, oemnum: p.oemnum, notes: p.notes })}`;
+
+  try {
+    const data = await fetchWithRetry(apiKey, {
+      model: 'claude-sonnet-4-5-20250929',
+      max_tokens: 1000,
+      messages: [{ role: 'user', content: prompt }]
+    }, setEbayAiStatus);
+
+    const text = data.content.filter(b => b.type === 'text').map(b => b.text).join('');
+    const match = text.replace(/```json|```/g, '').match(/\{[\s\S]*\}/);
+    if (!match) throw new Error('No JSON in response');
+    const listing = JSON.parse(match[0]);
+
+    document.getElementById('ebay-title').value       = listing.title || '';
+    document.getElementById('ebay-description').value = listing.description || '';
+    if (listing.categoryId) document.getElementById('ebay-category').value = listing.categoryId;
+
+    // Trigger char count update
+    document.getElementById('ebay-title').dispatchEvent(new Event('input'));
+
+    setEbayAiStatus('ok', '✓ Listing generated — review and edit before publishing.');
+
+  } catch(err) {
+    setEbayAiStatus('error', '⚠ ' + (err.message || 'Generation failed'));
+  } finally {
+    document.getElementById('ebay-ai-fill-btn').disabled = false;
+  }
+}
+
+function setEbayAiStatus(type, msg) {
+  const el = document.getElementById('ebay-ai-status');
+  el.style.display = 'block';
+  el.innerHTML = msg;
+  el.style.borderLeftColor = type === 'ok' ? 'var(--green)' : type === 'error' ? 'var(--red)' : 'var(--accent)';
+  el.style.color = type === 'loading' ? 'var(--muted)' : '#ccc';
+}
+
+async function publishEbayListing() {
+  if (!ebayCurrentPart) return;
+
+  const title = document.getElementById('ebay-title').value.trim();
+  const price = parseFloat(document.getElementById('ebay-price').value);
+  const description = document.getElementById('ebay-description').value.trim();
+
+  if (!title)       { setEbaySubmitStatus('error', '⚠ Title is required.'); return; }
+  if (!price || price <= 0) { setEbaySubmitStatus('error', '⚠ Enter a valid price.'); return; }
+  if (!description) { setEbaySubmitStatus('error', '⚠ Description is required.'); return; }
+  if (ebayPhotos.length === 0) { setEbaySubmitStatus('error', '⚠ Add at least 1 photo.'); return; }
+
+  setEbaySubmitStatus('loading', '📸 Uploading photos...');
+  document.getElementById('ebay-publish-btn').disabled = true;
+
+  // Compress then upload to Supabase Storage to get public URLs for eBay
+  let imageUrls = [];
+  try {
+    for (let i = 0; i < ebayPhotos.length; i++) {
+      setEbaySubmitStatus('loading', `📸 Uploading photo ${i+1} of ${ebayPhotos.length}...`);
+      const compressed = await compressForEbay(ebayPhotos[i].dataUrl);
+      const url = await uploadPhotoToSupabase(compressed, `part-${ebayCurrentPart.id}-${i}.jpg`);
+      imageUrls.push(url);
+    }
+  } catch(err) {
+    setEbaySubmitStatus('error', '⚠ Photo upload failed: ' + err.message);
+    document.getElementById('ebay-publish-btn').disabled = false;
+    return;
+  }
+
+  setEbaySubmitStatus('loading', '📋 Creating eBay listing...');
+
+  const listing = {
+    title,
+    description,
+    price: price.toFixed(2),
+    quantity: parseInt(document.getElementById('ebay-qty').value) || 1,
+    categoryId: document.getElementById('ebay-category').value || '66471',
+    conditionDescription: '',
+    format: 'FIXED_PRICE',
+    imageUrls
+  };
+
+  try {
+    const res = await fetch('/.netlify/functions/ebay-list', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ part: ebayCurrentPart, listing })
+    });
+
+    const data = await res.json();
+    if (!res.ok || data.error) throw new Error(data.error || 'Listing failed');
+
+    setEbaySubmitStatus('ok',
+      `✓ Listed on eBay! Listing ID: <strong style="color:#fff">${data.listingId}</strong><br>` +
+      `<a href="${data.listingUrl}" target="_blank" style="color:var(--accent-bright);letter-spacing:1px;">VIEW LISTING →</a>`
+    );
+
+    const idx = parts.findIndex(x => x.id === ebayCurrentPart.id);
+    if (idx !== -1) {
+      parts[idx].ebayListingId  = data.listingId;
+      parts[idx].ebayListingUrl = data.listingUrl;
+      parts[idx].ebayEnv        = 'production';
+      saveData(parts[idx]);
+      renderInventory();
+    }
+
+    toast('Listed on eBay ✓');
+    updateEbaySyncBtn();
+
+  } catch(err) {
+    setEbaySubmitStatus('error', '⚠ ' + (err.message || 'Unknown error'));
+  } finally {
+    document.getElementById('ebay-publish-btn').disabled = false;
+  }
+}
+
+function setEbaySubmitStatus(type, html) {
+  const el = document.getElementById('ebay-submit-status');
+  el.style.display = 'block';
+  el.innerHTML = html;
+  el.style.borderLeftColor = type === 'ok' ? 'var(--green)' : type === 'error' ? 'var(--red)' : 'var(--accent)';
+}
+
+// ===== EBAY SALES SYNC =====
+let ebayLastSync = 0;
+let ebaySyncTimer = null;
+const SYNC_INTERVAL_MS = 5 * 60 * 1000; // auto-sync every 5 minutes
+
+function getListedParts() {
+  return parts.filter(p => p.ebayListingId && ebayToken?.access_token);
+}
+
+function updateEbaySyncBtn() {
+  const btn = document.getElementById('ebay-sync-btn');
+  const statusBtn = document.getElementById('ebay-status-btn');
+  const hasListings = getListedParts().length > 0 && ebayToken?.access_token;
+  if (statusBtn) statusBtn.style.display = hasListings ? '' : 'none';
+  btn.style.display = hasListings ? 'inline-block' : 'none';
+}
+
+async function syncEbaySales(silent = false) {
+  if (!ebayToken?.access_token) return;
+  const listedParts = getListedParts();
+  if (!listedParts.length) return;
+
+  const statusEl = document.getElementById('ebay-sync-status');
+  const setStatus = (type, msg) => {
+    statusEl.style.display = 'block';
+    statusEl.innerHTML = msg;
+    statusEl.style.borderLeftColor = type === 'ok' ? 'var(--green)' : type === 'error' ? 'var(--red)' : '#e53238';
+    statusEl.style.color = type === 'loading' ? 'var(--muted)' : '#ccc';
+  };
+
+  if (!silent) setStatus('loading', '⟳ Syncing eBay sales...');
+
+  try {
+    const listingIds = listedParts.map(p => String(p.ebayListingId));
+
+    const res = await fetch('/.netlify/functions/ebay-sync', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        access_token: ebayToken.access_token,
+        env: ebayToken.env,
+        listingIds
+      })
+    });
+
+    const data = await res.json();
+    if (!res.ok || data.error) throw new Error(data.error || 'Sync failed');
+
+    const { soldMap } = data;
+    let totalDeducted = 0;
+    let totalSoldItems = 0;
+    const alerts = [];
+
+    for (const p of listedParts) {
+      const sold = soldMap[String(p.ebayListingId)];
+      if (!sold) continue;
+
+      const prevSoldQty = p.ebaySoldQty || 0;
+      const newSoldQty  = sold.qtySold;
+
+      if (newSoldQty > prevSoldQty) {
+        const diff = newSoldQty - prevSoldQty;
+        const idx  = parts.findIndex(x => x.id === p.id);
+        if (idx !== -1) {
+          const oldQty = parts[idx].qty ?? 1;
+          const newQty = Math.max(0, oldQty - diff);
+          parts[idx].qty         = newQty;
+          parts[idx].ebaySoldQty = newSoldQty;
+          parts[idx].ebayLastSold = sold.orders[sold.orders.length - 1]?.createdAt || new Date().toISOString();
+          totalDeducted++;
+          totalSoldItems += diff;
+          alerts.push(`${p.name}: sold ${diff}, qty ${oldQty} → ${newQty}`);
+          if (newQty === 0) parts[idx].condition = parts[idx].condition; // keep condition, mark visually
+        }
+      } else if (newSoldQty === prevSoldQty && newSoldQty > 0) {
+        // Update record silently, no change
+        const idx = parts.findIndex(x => x.id === p.id);
+        if (idx !== -1) parts[idx].ebaySoldQty = newSoldQty;
+      }
+    }
+
+    if (totalDeducted > 0) {
+      saveData();
+      renderInventory();
+      renderSheet();
+      updateStats();
+    }
+
+    ebayLastSync = Date.now();
+    const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+    if (totalDeducted > 0) {
+      setStatus('ok',
+        `✓ Synced at ${timeStr} — <strong style="color:#fff">${totalSoldItems} unit${totalSoldItems !== 1 ? 's' : ''} sold</strong>, inventory updated.<br>` +
+        `<span style="font-size:10px;color:var(--muted);">${alerts.join(' · ')}</span>`
+      );
+      toast(`${totalSoldItems} sale${totalSoldItems !== 1 ? 's' : ''} detected — inventory updated`);
+    } else if (!silent) {
+      setStatus('ok', `✓ Synced at ${timeStr} — no new sales since last check.`);
+      setTimeout(() => { if (statusEl.innerHTML.includes(timeStr)) statusEl.style.display = 'none'; }, 4000);
+    }
+
+  } catch(err) {
+    if (!silent) setStatus('error', '⚠ Sync failed: ' + err.message);
+  }
+}
+
+function startEbaySyncPolling() {
+  if (ebaySyncTimer) clearInterval(ebaySyncTimer);
+  // Initial sync after 10s (give page time to load)
+  setTimeout(() => {
+    if (getListedParts().length > 0) syncEbaySales(true);
+  }, 10000);
+  // Then every 5 minutes
+  ebaySyncTimer = setInterval(() => {
+    if (document.visibilityState !== 'hidden' && getListedParts().length > 0) {
+      syncEbaySales(true);
+    }
+  }, SYNC_INTERVAL_MS);
+}
+
+// ===== INIT =====
+(async () => {
+  // Pre-fill saved DB config
+  const savedUrl = localStorage.getItem('sb_url') || '';
+  const savedKey = localStorage.getItem('sb_key') || '';
+  document.getElementById('sb-url-input').value = savedUrl;
+  document.getElementById('sb-key-input').value = savedKey;
+
+  // Hide DB settings panel if config is hardcoded
+  if (ANTHROPIC_API_KEY) {
+    const aiSettings = document.getElementById('ai-settings-bar');
+    if (aiSettings) aiSettings.style.display = 'none';
+  }
+  if (SUPABASE_URL && SUPABASE_ANON_KEY) {
+    const dbSection = document.getElementById('db-config-section');
+    if (dbSection) dbSection.style.display = 'none';
+  }
+
+  const hasDb = initSupabase();
+
+  if (!hasDb) {
+    // No DB configured — show auth screen with settings open
+    document.getElementById('auth-screen').style.display = 'flex';
+    document.getElementById('db-config-panel').style.display = 'flex';
+    document.getElementById('db-config-arrow').textContent = '▲';
+    setDbStatus('offline');
+    return;
+  }
+
+  // Check for existing session
+  const { data: { session } } = await sb.auth.getSession();
+  if (session?.user) {
+    currentUser = session.user;
+    await onAuthSuccess();
+  } else {
+    document.getElementById('auth-screen').style.display = 'flex';
+    setDbStatus('offline');
+  }
+
+  // Listen for auth state changes (token refresh, sign out)
+  sb.auth.onAuthStateChange(async (event, session) => {
+    if (event === 'SIGNED_IN' && session?.user && !currentUser) {
+      currentUser = session.user;
+      await onAuthSuccess();
+    } else if (event === 'SIGNED_OUT') {
+      currentUser = null;
+      parts = [];
+      document.getElementById('auth-screen').style.display = 'flex';
+      setDbStatus('offline');
+    } else if (event === 'TOKEN_REFRESHED' && session?.user) {
+      currentUser = session.user;
+    }
+  });
+
+  // Restore API key
+  const _savedKey = localStorage.getItem('rm_apikey');
+  if (_savedKey) {
+    document.getElementById('api-key-input').value = _savedKey;
+  } else {
+    document.getElementById('ai-settings-panel').style.display = 'block';
+    document.getElementById('ai-settings-arrow').textContent = '▲';
+  }
+  updateAiKeyStatus();
+
+  loadEbayToken();
+  handleEbayCallback();
+  updateEbaySyncBtn();
+  startEbaySyncPolling();
+
+  // eBay title character counter
+  document.getElementById('ebay-title').addEventListener('input', function() {
+    const len = this.value.length;
+    const el = document.getElementById('ebay-title-count');
+    el.textContent = `${len}/80`;
+    el.style.color = len > 75 ? '#cc2222' : 'var(--muted)';
+  });
+})();
+
+// Handle ?part=PART-XXXX in URL (from phone camera scanning a QR label)
+(function checkUrlParam() {
+  const params = new URLSearchParams(window.location.search);
+  const partId = params.get('part');
+  if (partId) {
+    // Small delay to let the UI render first
+    setTimeout(() => {
+      switchView('scan');
+      handleScanResult(partId.toUpperCase());
+      // Clean the URL without reloading
+      window.history.replaceState({}, '', window.location.pathname);
+    }, 300);
+  }
+})();
+</script>
+
+<script>
+// ===== ROLES & PERMISSIONS =====
+
+function applyFormRoleUI() {
+  const priceGroup = document.getElementById('price-field-group');
+  const priceNote  = document.getElementById('price-admin-note');
+  if (priceGroup) {
+    // Loggers can see price but not required — show note
+    if (priceNote) priceNote.style.display = isLogger() ? 'inline' : 'none';
+    const priceInput = document.getElementById('f-price');
+    if (priceInput) priceInput.readOnly = isLogger();
+  }
+  // Hide export button in sheet for loggers
+  const exportBtn = document.getElementById('sheet-export-btn');
+  if (exportBtn) exportBtn.style.display = isAdmin() ? '' : 'none';
+  // Show activity log tab only for admins
+  const logTab = document.getElementById('tab-log');
+  if (logTab) logTab.style.display = isAdmin() ? '' : 'none';
+}
+
+function renderPendingBadge() {
+  const count = parts.filter(p => p.pendingReview).length;
+  const badge = document.getElementById('pending-nav-badge');
+  if (!badge) return;
+  if (count > 0) {
+    badge.textContent = count;
+    badge.style.display = 'inline-block';
+  } else {
+    badge.style.display = 'none';
+  }
+}
+
+// ===== PIN LOGIN =====
+let pinBuffer = '';
+let pinLoginMode = 'password';
+
+function setLoginMode(mode) {
+  pinLoginMode = mode;
+  document.getElementById('login-panel-password').style.display = mode === 'password' ? '' : 'none';
+  document.getElementById('login-panel-pin').style.display      = mode === 'pin'      ? '' : 'none';
+  document.getElementById('login-mode-password').style.background = mode === 'password' ? 'var(--accent)' : 'var(--surface2)';
+  document.getElementById('login-mode-password').style.color     = mode === 'password' ? '#fff' : 'var(--muted)';
+  document.getElementById('login-mode-pin').style.background     = mode === 'pin'      ? 'var(--accent)' : 'var(--surface2)';
+  document.getElementById('login-mode-pin').style.color          = mode === 'pin'      ? '#fff' : 'var(--muted)';
+  pinBuffer = '';
+  renderPinDots();
+}
+
+function renderPinDots() {
+  for (let i = 0; i < 4; i++) {
+    const dot = document.getElementById('pd' + i);
+    if (!dot) continue;
+    dot.classList.toggle('filled', i < pinBuffer.length);
+    dot.classList.remove('error');
+  }
+}
+
+function pinKey(digit) {
+  if (pinBuffer.length >= 4) return;
+  pinBuffer += digit;
+  renderPinDots();
+  if (pinBuffer.length === 4) signInWithPin();
+}
+function pinDel()   { pinBuffer = pinBuffer.slice(0,-1); renderPinDots(); }
+function pinClear() { pinBuffer = ''; renderPinDots(); }
+
+async function signInWithPin() {
+  if (!sb) { showAuthError('Database not configured.'); return; }
+  const errEl = document.getElementById('auth-error');
+  errEl.style.display = 'none';
+
+  try {
+    // Fetch all users with a pin set in metadata — we do a custom lookup
+    // Strategy: try each user's stored pin_email/pin pair from localStorage cache
+    // For security, PINs are matched against user_metadata.pin on the server via a custom check.
+    // Since Supabase doesn't expose other users' metadata, we use email+PIN where email is
+    // stored locally from last successful login, OR user types email too.
+    // Simplified: store pin_email in localStorage after password login for PIN re-auth.
+    const cachedEmail = localStorage.getItem('pin_email');
+    if (!cachedEmail) {
+      showAuthError('PIN login requires a previous password login on this device, or contact your admin.');
+      pinBuffer = ''; renderPinDots();
+      return;
+    }
+
+    // Use a server function to validate PIN (safer) — or fall back to signing in with email + PIN as password
+    // Since PIN is stored as user_metadata.pin by the admin, we validate via a lightweight check:
+    // We fetch the session, check metadata. This requires the user to have set pin in their metadata.
+    // We sign in with stored credentials and check the pin — NOT exposed here.
+    // Instead: store encrypted pin_hash locally after first password login.
+    const pinHash = localStorage.getItem('pin_hash');
+    if (!pinHash) {
+      showAuthError('No PIN set for this device. Sign in with password first — your admin must set a PIN in your account settings.');
+      pinBuffer = ''; renderPinDots();
+      return;
+    }
+
+    // Simple comparison (pin is stored as a hash of the PIN)
+    const inputHash = await hashPin(pinBuffer);
+    if (inputHash !== pinHash) {
+      // Shake dots
+      for (let i = 0; i < 4; i++) {
+        const d = document.getElementById('pd' + i);
+        if (d) { d.classList.remove('filled'); d.classList.add('error'); }
+      }
+      setTimeout(() => { pinBuffer = ''; renderPinDots(); }, 600);
+      showAuthError('Incorrect PIN');
+      return;
+    }
+
+    // PIN matches — sign in with cached email using stored session token
+    const storedSession = localStorage.getItem('pin_session');
+    if (storedSession) {
+      const session = JSON.parse(storedSession);
+      const { data, error } = await sb.auth.setSession(session);
+      if (!error && data.user) {
+        currentUser = data.user;
+        await onAuthSuccess();
+        return;
+      }
+    }
+    showAuthError('PIN session expired — please sign in with your password.');
+    pinBuffer = ''; renderPinDots();
+
+  } catch(err) {
+    showAuthError('PIN error: ' + err.message);
+    pinBuffer = ''; renderPinDots();
+  }
+}
+
+async function hashPin(pin) {
+  const msgBuffer = new TextEncoder().encode(pin + 'riders_miami_salt');
+  const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+  return Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2,'0')).join('').slice(0,16);
+}
+
+// After successful password login, cache PIN credentials if user has a PIN set
+async function cachePinIfSet(user) {
+  const pin = user?.user_metadata?.pin;
+  if (!pin) return;
+  const hash = await hashPin(String(pin));
+  localStorage.setItem('pin_email', user.email);
+  localStorage.setItem('pin_hash', hash);
+  // Cache the session for PIN re-auth
+  const { data } = await sb.auth.getSession();
+  if (data?.session) {
+    localStorage.setItem('pin_session', JSON.stringify({
+      access_token:  data.session.access_token,
+      refresh_token: data.session.refresh_token,
+    }));
+  }
+}
+
+// ===== FLAG FOR REVIEW =====
+let reviewTargetId = null;
+
+function flagForReview(id) {
+  const p = parts.find(x => x.id === id);
+  if (!p) return;
+
+  const note = prompt('Optional: add a note about why this part needs review (or leave blank and press OK)');
+  if (note === null) return; // cancelled
+
+  const idx = parts.findIndex(x => x.id === id);
+  parts[idx].pendingReview = true;
+  parts[idx].reviewNote    = note || '';
+  saveData(parts[idx]);
+  logActivity(id, p.name, 'flagged', note ? 'Note: ' + note : 'No note');
+  renderInventory();
+  toast('Part flagged for admin review ✓');
+}
+
+function openReviewModal(id) {
+  const p = parts.find(x => x.id === id);
+  if (!p) return;
+  reviewTargetId = id;
+  document.getElementById('review-part-name').textContent = p.name;
+  document.getElementById('review-flag-note').textContent = p.reviewNote ? '⚑ Logger note: ' + p.reviewNote : 'No note from logger';
+  document.getElementById('review-admin-note').value = '';
+  openModal('review-modal');
+}
+
+function approveReview() {
+  if (!reviewTargetId) return;
+  const p = parts.find(x => x.id === reviewTargetId);
+  if (!p) return;
+  const adminNote = document.getElementById('review-admin-note').value.trim();
+  const idx = parts.findIndex(x => x.id === reviewTargetId);
+  parts[idx].pendingReview = false;
+  parts[idx].reviewNote    = '';
+  if (adminNote) parts[idx].notes = (parts[idx].notes ? parts[idx].notes + ' | ' : '') + 'Admin: ' + adminNote;
+  saveData(parts[idx]);
+  logActivity(reviewTargetId, p.name, 'approved', adminNote || 'No note');
+  closeModal('review-modal');
+  reviewTargetId = null;
+  renderInventory();
+  renderPendingBadge();
+  toast('Part approved ✓');
+}
+
+function editFromReview() {
+  if (!reviewTargetId) return;
+  closeModal('review-modal');
+  editPart(reviewTargetId);
+  reviewTargetId = null;
+}
+
+// ===== ACTIVITY LOG =====
+async function logActivity(partId, partName, action, detail) {
+  if (!sb || !currentUser) return;
+  try {
+    await sb.from('activity_log').insert({
+      part_id:    partId,
+      part_name:  partName,
+      action,
+      user_email: currentUser.email,
+      user_role:  currentRole || 'unknown',
+      detail:     detail || '',
+    });
+    // Refresh badge if log tab is active
+    renderPendingBadge();
+  } catch(err) {
+    console.warn('Activity log error:', err.message);
+  }
+}
+
+async function loadActivityLog() {
+  if (!sb) return;
+  const loading = document.getElementById('log-loading');
+  const table   = document.getElementById('log-table');
+  const empty   = document.getElementById('log-empty');
+  const body    = document.getElementById('log-body');
+
+  loading.style.display = 'block';
+  table.style.display   = 'none';
+  empty.style.display   = 'none';
+
+  try {
+    const { data, error } = await sb
+      .from('activity_log')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(200);
+
+    if (error) throw error;
+    loading.style.display = 'none';
+
+    if (!data || data.length === 0) { empty.style.display = 'block'; return; }
+
+    const actionColors = {
+      added: 'log-action-added', edited: 'log-action-edited',
+      deleted: 'log-action-deleted', listed: 'log-action-listed',
+      flagged: 'log-action-flagged', approved: 'log-action-approved',
+    };
+
+    body.innerHTML = data.map(row => {
+      const d   = new Date(row.created_at);
+      const ts  = d.toLocaleDateString() + ' ' + d.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
+      const ac  = actionColors[row.action] || '';
+      const rc  = row.user_role === 'admin' ? 'log-role-admin' : 'log-role-logger';
+      return `<tr>
+        <td style="font-family:var(--font-display),sans-serif;font-size:11px;color:var(--muted);white-space:nowrap;">${ts}</td>
+        <td><span class="${ac}" style="font-family:var(--font-display),sans-serif;font-size:13px;font-weight:700;letter-spacing:1px;text-transform:uppercase;">${esc(row.action)}</span></td>
+        <td style="font-size:13px;">${esc(row.part_name || '—')}</td>
+        <td style="font-family:var(--font-display),sans-serif;font-size:11px;color:var(--muted);">${esc(row.user_email || '—')}</td>
+        <td><span class="${rc}" style="font-family:var(--font-display),sans-serif;font-size:12px;letter-spacing:1px;text-transform:uppercase;">${esc(row.user_role || '—')}</span></td>
+        <td style="font-family:var(--font-display),sans-serif;font-size:11px;color:var(--muted);">${esc(row.detail || '')}</td>
+      </tr>`;
+    }).join('');
+
+    table.style.display = 'table';
+
+  } catch(err) {
+    loading.style.display = 'none';
+    empty.style.display   = 'block';
+    empty.textContent     = 'Error loading log: ' + err.message;
+  }
+}
+
+</script>
+
+<script>
+// ===== MARKET SCOUT =====
+let scoutResults = [];
+
+// ── eBay listing status check ──────────────────────────────────────────────
+function ebayBadgeClass(p) {
+  if (p.ebaySoldQty > 0 && p.qty <= 0) return 'ebay-badge-sold';
+  switch (p.ebayStatus) {
+    case 'active':   return 'ebay-badge-live';
+    case 'ended':    return 'ebay-badge-ended';
+    case 'sold_out': return 'ebay-badge-soldout';
+    case 'unknown':  return 'ebay-badge-unknown';
+    default:         return p.ebaySoldQty ? 'ebay-badge-sold' : 'ebay-badge-live';
+  }
+}
+
+function ebayBadgeText(p) {
+  if (p.ebayStatus === 'ended')    return '✕ LISTING ENDED';
+  if (p.ebayStatus === 'sold_out') return '⚠ SOLD OUT';
+  if (p.ebaySoldQty)               return `✓ ${p.ebaySoldQty} SOLD`;
+  if (p.ebayStatus === 'active')   return '● LIVE ON eBay';
+  if (p.ebayStatus === 'unknown')  return '? STATUS UNKNOWN';
+  return '● LIVE ON eBay';
+}
+
+async function checkEbayStatuses(silent = false) {
+  // Check ALL parts that have ever had an eBay listing ID — not just currently-active ones
+  const listed = parts.filter(p => p.ebayListingId);
+  if (!listed.length) return;
+
+  const statusEl  = document.getElementById('ebay-sync-status');
+  const setStatus = (type, msg) => {
+    statusEl.style.display         = 'block';
+    statusEl.innerHTML             = msg;
+    statusEl.style.borderLeftColor = type === 'ok' ? 'var(--green)' : type === 'error' ? 'var(--red)' : '#e53238';
+    statusEl.style.color           = type === 'loading' ? 'var(--muted)' : '#ccc';
+  };
+
+  if (!silent) setStatus('loading', '⟳ Checking eBay listing statuses...');
+
+  try {
+    const res = await fetch('/.netlify/functions/ebay-status', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ listingIds: listed.map(p => String(p.ebayListingId)) })
+    });
+
+    const data = await res.json();
+    if (!res.ok || data.error) throw new Error(data.error || 'Status check failed');
+
+    const { statusMap } = data;
+    const now = new Date().toISOString();
+    let changed = 0;
+    const endedNames = [];
+
+    for (const p of listed) {
+      const info = statusMap[String(p.ebayListingId)];
+      if (!info) continue;
+
+      const idx = parts.findIndex(x => x.id === p.id);
+      if (idx === -1) continue;
+
+      const prev = parts[idx].ebayStatus;
+      parts[idx].ebayStatus   = info.status;
+      parts[idx].ebayStatusAt = now;
+
+      // Keep ebayListingId intact — needed for badge display and future re-checks.
+      // Only zero qty if eBay reports sold out.
+      if (info.status === 'sold_out') {
+        parts[idx].qty = 0;
+      }
+
+      if (prev !== info.status) {
+        changed++;
+        if (info.status === 'ended' || info.status === 'sold_out') {
+          endedNames.push(p.name);
+        }
+        // Update the card badge immediately in the DOM without waiting for full re-render
+        const cardBadgeEl = document.querySelector(`[data-part-id="${parts[idx].id}"] .ebay-badge`);
+        if (cardBadgeEl) {
+          cardBadgeEl.className = 'ebay-badge ' + ebayBadgeClass(parts[idx]);
+          const viewLink = cardBadgeEl.querySelector('a');
+          cardBadgeEl.textContent = ebayBadgeText(parts[idx]);
+          if (viewLink) cardBadgeEl.appendChild(viewLink);
+        }
+      }
+      saveData(parts[idx]);
+    }
+
+    if (!silent) {
+      let msg = changed
+        ? `✓ ${changed} listing${changed > 1 ? 's' : ''} updated`
+        : '✓ All listings up to date';
+      if (endedNames.length) {
+        msg += ` — ended: ${endedNames.slice(0,3).join(', ')}${endedNames.length > 3 ? '…' : ''}`;
+      }
+      setStatus('ok', msg);
+      setTimeout(() => { statusEl.style.display = 'none'; }, 6000);
+    }
+
+    renderInventory();
+
+  } catch (err) {
+    if (!silent) setStatus('error', '⚠ Status check failed: ' + err.message);
+  }
+}
+
+// Run status check automatically whenever inventory view loads (throttled to once per 10 min)
+let lastStatusCheck = 0;
+function maybeCheckStatuses() {
+  const TWO_MIN = 2 * 60 * 1000;
+  if (Date.now() - lastStatusCheck < TWO_MIN) return;
+  if (!parts.some(p => p.ebayListingId)) return;
+  lastStatusCheck = Date.now();
+  checkEbayStatuses(true);
+}
+
+
+async function runScout() {
+  const btn     = document.getElementById('scout-run-btn');
+  const loading = document.getElementById('scout-loading');
+  const errorEl = document.getElementById('scout-error');
+  const grid    = document.getElementById('scout-grid');
+  const empty   = document.getElementById('scout-empty');
+  const cta     = document.getElementById('scout-cta');
+  const stats   = document.getElementById('scout-stats');
+
+  const category   = document.getElementById('scout-category').value;
+  const keywords   = document.getElementById('scout-keywords').value.trim();
+  const minPrice   = parseFloat(document.getElementById('scout-min-price').value) || 0;
+  const maxPrice   = parseFloat(document.getElementById('scout-max-price').value) || 9999;
+  const sortBy     = document.getElementById('scout-sort').value;
+  const maxResults = parseInt(document.getElementById('scout-results').value) || 40;
+
+  btn.disabled = true;
+  btn.textContent = 'SCANNING...';
+  cta.style.display = 'none';
+  loading.style.display = 'block';
+  errorEl.style.display = 'none';
+  grid.style.display = 'none';
+  empty.style.display = 'none';
+  stats.style.display = 'none';
+
+  try {
+    const res = await fetch('/.netlify/functions/market-scout', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ category, keywords, minPrice, maxPrice, sortBy, maxResults })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || data.detail || 'Unknown error');
+    if (!data.items || data.items.length === 0) { empty.style.display = 'block'; return; }
+
+    scoutResults = data.items;
+    renderScoutGrid(data);
+    renderScoutStats(data);
+    document.getElementById('scout-last-run').textContent = 'Last scan: ' + new Date().toLocaleTimeString();
+
+  } catch (err) {
+    errorEl.textContent = String.fromCharCode(9888) + ' ' + err.message;
+    errorEl.style.display = 'block';
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'SCAN';
+    loading.style.display = 'none';
+  }
+}
+
+function renderScoutStats(data) {
+  const stats    = document.getElementById('scout-stats');
+  const items    = data.items;
+  const priced   = items.filter(function(i) { return i.price !== null; });
+  const avgPrice = priced.length ? priced.reduce(function(s,i){ return s+i.price; }, 0) / priced.length : 0;
+  const freeShip = items.filter(function(i){ return i.freeShipping; }).length;
+  const topRated = items.filter(function(i){ return i.topRated; }).length;
+
+  document.getElementById('sstat-total').textContent     = data.total ? data.total.toLocaleString() : items.length;
+  document.getElementById('sstat-shown').textContent     = items.length;
+  document.getElementById('sstat-filtered').textContent  = data.filtered || 0;
+  document.getElementById('sstat-avg-price').textContent = '$' + avgPrice.toFixed(0);
+  document.getElementById('sstat-free-ship').textContent = freeShip + ' / ' + items.length;
+  document.getElementById('sstat-top-rated').textContent = topRated + ' / ' + items.length;
+
+  stats.style.display = 'flex';
+}
+
+function scoutAgeLabel(days) {
+  if (days === 0)       return 'Today';
+  if (days === 1)       return '1 day ago';
+  if (days < 7)         return days + ' days ago';
+  if (days < 14)        return '1 week ago';
+  if (days < 30)        return Math.floor(days / 7) + ' weeks ago';
+  if (days < 60)        return '1 month ago';
+  if (days < 365)       return Math.floor(days / 30) + ' months ago';
+  return Math.floor(days / 365) + 'yr ago';
+}
+
+function scoutAgeColor(days) {
+  // Fresh = green, getting stale = amber, old = muted
+  if (days <= 7)  return 'color:#22cc66;';
+  if (days <= 30) return 'color:#cc2222;';
+  return 'color:var(--muted);';
+}
+
+function scoutEndLabel(endDate) {
+  var ms   = new Date(endDate).getTime() - Date.now();
+  var hrs  = Math.floor(ms / 3600000);
+  if (hrs < 1)  return 'soon';
+  if (hrs < 24) return 'in ' + hrs + 'h';
+  return 'in ' + Math.floor(hrs / 24) + 'd';
+}
+
+function makeEl(tag, props, text) {
+  var el = document.createElement(tag);
+  if (props) Object.keys(props).forEach(function(k) { el[k] = props[k]; });
+  if (text !== undefined) el.textContent = text;
+  return el;
+}
+
+function renderScoutGrid(data) {
+  var grid  = document.getElementById('scout-grid');
+  var items = data.items;
+
+  var inner = document.createElement('div');
+  inner.className = 'scout-grid-inner';
+
+  items.forEach(function(item, idx) {
+    var card = document.createElement('div');
+    card.className = 'scout-card';
+
+    // Rank badge
+    var rank = makeEl('div', {className: 'scout-card-rank'}, '#' + (idx+1));
+    card.appendChild(rank);
+
+    // Hot badge
+    var sold    = item.soldCount  || 0;
+    var watches = item.watchCount || 0;
+    var isHot   = watches >= 100 || sold >= 50;
+    var isTrend = watches >= 50  || sold >= 20;
+    var badgeText = isHot ? 'HOT' : (isTrend ? 'TRENDING' : (item.topRated ? 'TOP RATED' : ''));
+    if (badgeText) {
+      card.appendChild(makeEl('div', {className: 'scout-card-badge'}, badgeText));
+    }
+
+    // Image wrapper
+    var imgWrap = document.createElement('div');
+    imgWrap.style.cssText = 'position:relative;overflow:hidden;';
+    if (item.imageUrl) {
+      var img = document.createElement('img');
+      img.className = 'scout-card-img';
+      img.src = item.imageUrl;
+      img.alt = '';
+      img.loading = 'lazy';
+      var placeholder = makeEl('div', {className: 'scout-card-img-placeholder'}, String.fromCharCode(9672));
+      placeholder.style.display = 'none';
+      img.onerror = function() { img.style.display = 'none'; placeholder.style.display = 'flex'; };
+      imgWrap.appendChild(img);
+      imgWrap.appendChild(placeholder);
+    } else {
+      imgWrap.appendChild(makeEl('div', {className: 'scout-card-img-placeholder'}, String.fromCharCode(9672)));
+    }
+    card.appendChild(imgWrap);
+
+    // Body
+    var body = document.createElement('div');
+    body.className = 'scout-card-body';
+
+    var title = makeEl('div', {className: 'scout-card-title', title: item.title}, item.title);
+    body.appendChild(title);
+
+    var price = makeEl('div', {className: 'scout-card-price'}, item.price !== null ? '$' + item.price.toFixed(2) : '—');
+    body.appendChild(price);
+
+    var meta = document.createElement('div');
+    meta.className = 'scout-card-meta';
+
+    // Watch pill — only show if eBay actually returned a non-zero value
+    if (item.watchCount !== null && item.watchCount > 0) {
+      var wPill = document.createElement('span');
+      wPill.className = 'scout-pill scout-pill-watch';
+      wPill.textContent = item.watchCount + ' watching';
+      meta.appendChild(wPill);
+    }
+
+    // Sold count pill
+    if (sold > 0) {
+      meta.appendChild(makeEl('span', {className: 'scout-pill scout-pill-sold'}, sold + ' sold'));
+    }
+
+    // Active status pill — always shown since all results are verified active
+    var activePill = makeEl('span', {className: 'scout-pill scout-pill-active'}, item.verified ? '● ACTIVE' : '● ACTIVE*');
+    activePill.title = item.verified ? 'Verified active listing' : 'Assumed active — could not verify';
+    meta.appendChild(activePill);
+
+    // Shipping pill
+    var shipLabel = item.freeShipping ? 'Free Ship' : (item.shippingCost !== null ? '+$' + (item.shippingCost||0).toFixed(0) + ' ship' : 'Ship TBD');
+    var sPill = makeEl('span', {className: 'scout-pill scout-pill-ship' + (item.freeShipping ? ' free' : '')}, shipLabel);
+    meta.appendChild(sPill);
+    body.appendChild(meta);
+
+    // Info row: condition · listing age
+    var infoRow = document.createElement('div');
+    infoRow.style.cssText = 'display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:1px;';
+
+    if (item.condition) {
+      var cond = makeEl('span', null, item.condition);
+      cond.style.cssText = "font-family:var(--font-display),sans-serif;font-size:10px;letter-spacing:1px;color:var(--muted);text-transform:uppercase;";
+      infoRow.appendChild(cond);
+    }
+
+    if (item.listingAgeDays !== null && item.listingAgeDays !== undefined) {
+      var sep = makeEl('span', null, '·');
+      sep.style.color = 'var(--border)';
+      infoRow.appendChild(sep);
+      var ageEl = makeEl('span', null, 'Listed ' + scoutAgeLabel(item.listingAgeDays));
+      ageEl.style.cssText = "font-family:var(--font-display),sans-serif;font-size:10px;letter-spacing:1px;text-transform:uppercase;" + scoutAgeColor(item.listingAgeDays);
+      ageEl.title = item.listingDate ? new Date(item.listingDate).toLocaleDateString() : '';
+      infoRow.appendChild(ageEl);
+    } else if (item.isAuction && item.endDate) {
+      var sep2 = makeEl('span', null, '·');
+      sep2.style.color = 'var(--border)';
+      infoRow.appendChild(sep2);
+      var endsEl = makeEl('span', null, 'Ends ' + scoutEndLabel(item.endDate));
+      endsEl.style.cssText = "font-family:var(--font-display),sans-serif;font-size:10px;letter-spacing:1px;color:#cc2222;text-transform:uppercase;";
+      infoRow.appendChild(endsEl);
+    }
+
+    if (infoRow.children.length) body.appendChild(infoRow);
+
+    // Demand bar
+    if (item.demandScore > 0) {
+      var barWrap = document.createElement('div');
+      barWrap.style.cssText = 'height:2px;background:var(--surface2);border-radius:1px;margin-top:2px;';
+      var barFill = document.createElement('div');
+      barFill.style.cssText = 'height:2px;background:var(--accent);border-radius:1px;width:' + Math.min(100, Math.round(item.demandScore / 5)) + '%;';
+      barWrap.appendChild(barFill);
+      body.appendChild(barWrap);
+    }
+
+    // Actions
+    var actions = document.createElement('div');
+    actions.className = 'scout-card-actions';
+
+    var viewBtn = document.createElement('a');
+    viewBtn.className = 'scout-btn-ebay';
+    viewBtn.href = item.itemWebUrl;
+    viewBtn.target = '_blank';
+    viewBtn.rel = 'noopener';
+    viewBtn.textContent = 'VIEW';
+    actions.appendChild(viewBtn);
+
+    var addBtn = makeEl('button', {className: 'scout-btn-stock'}, '+ ADD');
+    addBtn.onclick = (function(it) { return function() { addScoutToInventory(it); }; })(item);
+    actions.appendChild(addBtn);
+
+    body.appendChild(actions);
+    card.appendChild(body);
+    inner.appendChild(card);
+  });
+
+  grid.innerHTML = '';
+  grid.appendChild(inner);
+  grid.style.display = 'block';
+}
+
+function addScoutToInventory(item) {
+  switchView('add');
+  setTimeout(function() {
+    var nameEl  = document.getElementById('part-name');
+    var priceEl = document.getElementById('part-price');
+    var notesEl = document.getElementById('part-notes');
+    if (nameEl)  nameEl.value  = item.title || '';
+    if (priceEl) priceEl.value = item.price || '';
+    var watchStr = item.watchCount !== null ? item.watchCount + ' watching' : 'watch count N/A';
+    var soldStr  = item.soldCount  > 0      ? ', ' + item.soldCount + ' sold' : '';
+    if (notesEl) notesEl.value = 'eBay scout — ' + watchStr + soldStr + '. URL: ' + (item.itemWebUrl || '');
+  }, 100);
+}
+
+function exportScoutCsv() {
+  if (!scoutResults.length) { alert('Run a scan first.'); return; }
+  var headers = ['Rank','Title','Price','Watches','Sold','Demand Score','Condition','Free Shipping','Shipping Cost','Top Rated','Seller','Feedback%','URL'];
+  var rows = scoutResults.map(function(item, i) {
+    return [i+1, item.title, item.price != null ? item.price : '', item.watchCount != null ? item.watchCount : 'N/A',
+      item.soldCount != null ? item.soldCount : 'N/A', item.demandScore, item.condition || '',
+      item.freeShipping ? 'Yes':'No', item.shippingCost != null ? item.shippingCost : '',
+      item.topRated ? 'Yes':'No', item.seller || '', item.sellerFeedback || '', item.itemWebUrl];
+  });
+  var csv = [headers].concat(rows).map(function(r) {
+    return r.map(function(v) { return '"' + String(v).replace(/"/g, '""') + '"'; }).join(',');
+  }).join('\n');
+  var blob = new Blob([csv], { type: 'text/csv' });
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'market-scout-' + new Date().toISOString().slice(0,10) + '.csv';
+  a.click();
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  var kw = document.getElementById('scout-keywords');
+  if (kw) kw.addEventListener('keydown', function(e) { if (e.key === 'Enter') runScout(); });
+});
+</script>
+
+</body>
+</html>
