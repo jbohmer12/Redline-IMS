@@ -1,0 +1,7 @@
+cd /Users/joaquinbohmer/Desktop/Redline/redline_ims_v1
+git init
+git add .
+git commit -m "Initial Redline IMS"
+git branch -M main
+git remote add origin https://github.com/jbohmer12/redline-ims.git
+git push -u origin main
