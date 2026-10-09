@@ -1,28 +1,32 @@
-// ai-lookup.js
-// Server-side proxy for Anthropic API — keeps the key out of the browser
+// ai-lookup.mjs
+// Server-side proxy for Anthropic API (via Netlify AI Gateway) — keeps the key out of the browser
 // POST /.netlify/functions/ai-lookup
 // Body: { oem: "part-number", existingParts: [...] }
 
-exports.handler = async (event) => {
-  if (event.httpMethod !== 'POST') {
-    return { statusCode: 405, body: 'Method Not Allowed' };
+const json = (data, status = 200) =>
+  new Response(JSON.stringify(data), {
+    status,
+    headers: { 'Content-Type': 'application/json' },
+  });
+
+export default async (req) => {
+  if (req.method !== 'POST') {
+    return new Response('Method Not Allowed', { status: 405 });
   }
 
   const apiKey = process.env.ANTHROPIC_API_KEY;
+  const baseUrl = (process.env.ANTHROPIC_BASE_URL || 'https://api.anthropic.com').replace(/\/$/, '');
   if (!apiKey) {
-    return {
-      statusCode: 500,
-      body: JSON.stringify({ error: 'API key not configured on server' })
-    };
+    return json({ error: 'API key not configured on server' }, 500);
   }
 
   let body;
-  try { body = JSON.parse(event.body); }
-  catch { return { statusCode: 400, body: JSON.stringify({ error: 'Invalid JSON' }) }; }
+  try { body = await req.json(); }
+  catch { return json({ error: 'Invalid JSON' }, 400); }
 
-  const { oem, existingParts = [] } = body;
+  const { oem, existingParts = [] } = body || {};
   if (!oem) {
-    return { statusCode: 400, body: JSON.stringify({ error: 'Missing oem field' }) };
+    return json({ error: 'Missing oem field' }, 400);
   }
 
   const prompt = `You are a motorcycle parts expert. Given this OEM/part number: "${oem}"
@@ -40,7 +44,7 @@ Identify the part and return ONLY a JSON object (no markdown, no explanation) wi
 If you cannot identify the part with confidence, return: {"error": "Part not found"}`;
 
   try {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
+    const res = await fetch(`${baseUrl}/v1/messages`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -56,7 +60,7 @@ If you cannot identify the part with confidence, return: {"error": "Part not fou
 
     if (!res.ok) {
       const err = await res.text();
-      return { statusCode: res.status, body: JSON.stringify({ error: 'Anthropic API error', detail: err }) };
+      return json({ error: 'Anthropic API error', detail: err }, res.status);
     }
 
     const data = await res.json();
@@ -65,17 +69,11 @@ If you cannot identify the part with confidence, return: {"error": "Part not fou
     // Parse JSON from response
     const jsonMatch = text.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
-      return { statusCode: 200, body: JSON.stringify({ error: 'Could not parse response' }) };
+      return json({ error: 'Could not parse response' });
     }
 
-    const result = JSON.parse(jsonMatch[0]);
-    return {
-      statusCode: 200,
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(result),
-    };
-
+    return json(JSON.parse(jsonMatch[0]));
   } catch (err) {
-    return { statusCode: 500, body: JSON.stringify({ error: err.message }) };
+    return json({ error: err.message }, 500);
   }
 };
