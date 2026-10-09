@@ -4,9 +4,14 @@
 // POST /.netlify/functions/ebay-status
 // Body: { listingIds: ["12345", "67890", ...] }
 
-const { getValidToken } = require('./ebay-refresh');
+const { getValidToken } = require('../lib/ebay-refresh');
 
+const { requireUser } = require('../lib/auth');
 exports.handler = async (event) => {
+  // Signed-in users only; see netlify/lib/auth.js
+  const auth = await requireUser(event, {});
+  if (auth.error) return auth.error;
+
   if (event.httpMethod !== 'POST') {
     return { statusCode: 405, body: 'Method Not Allowed' };
   }

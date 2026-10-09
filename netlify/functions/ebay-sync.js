@@ -1,8 +1,15 @@
 // ebay-sync.js — checks eBay orders and returns sold quantities per listing
 // POST /.netlify/functions/ebay-sync
-// Body: { access_token, env, listingIds: ["12345", "67890", ...] }
+// Body: { listingIds: ["12345", "67890", ...] }
+// Uses the server-side eBay token (EBAY_REFRESH_TOKEN), like the other eBay functions.
 
+const { requireUser } = require('../lib/auth');
+const { getValidToken } = require('../lib/ebay-refresh');
 exports.handler = async (event) => {
+  // Signed-in users only; see netlify/lib/auth.js
+  const auth = await requireUser(event, {});
+  if (auth.error) return auth.error;
+
   if (event.httpMethod !== 'POST') {
     return { statusCode: 405, body: 'Method Not Allowed' };
   }
@@ -11,16 +18,17 @@ exports.handler = async (event) => {
   try { body = JSON.parse(event.body); }
   catch { return { statusCode: 400, body: JSON.stringify({ error: 'Invalid JSON' }) }; }
 
-  const { access_token, env, listingIds } = body;
+  const { listingIds } = body;
 
-  if (!access_token || !listingIds?.length) {
-    return { statusCode: 400, body: JSON.stringify({ error: 'Missing access_token or listingIds' }) };
+  if (!Array.isArray(listingIds) || !listingIds.length) {
+    return { statusCode: 400, body: JSON.stringify({ error: 'Missing listingIds' }) };
   }
 
-  const isSandbox = env !== 'production';
-  const BASE = isSandbox
-    ? 'https://api.sandbox.ebay.com'
-    : 'https://api.ebay.com';
+  let access_token;
+  try { access_token = await getValidToken(); }
+  catch (e) { return { statusCode: 500, body: JSON.stringify({ error: 'eBay connection is not set up on the server.' }) }; }
+
+  const BASE = 'https://api.ebay.com';
 
   const headers = {
     'Authorization': `Bearer ${access_token}`,
@@ -33,18 +41,19 @@ exports.handler = async (event) => {
     const since = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString();
 
     // eBay Fulfillment API — get all orders
-    const ordersRes = await fetch(
-      `${BASE}/sell/fulfillment/v1/order?filter=creationdate:[${since}..],orderfulfillmentstatus:{NOT_STARTED|IN_PROGRESS|FULFILLED}`,
-      { headers }
-    );
-
-    if (!ordersRes.ok) {
-      const err = await ordersRes.json().catch(() => ({}));
-      throw new Error(`Orders API failed (${ordersRes.status}): ${JSON.stringify(err.errors?.[0] || err)}`);
+    // Follow `next` links so busy stores don't lose sales past the first page (max 10 pages x 200).
+    const orders = [];
+    let pageUrl = `${BASE}/sell/fulfillment/v1/order?limit=200&filter=creationdate:[${since}..],orderfulfillmentstatus:{NOT_STARTED|IN_PROGRESS|FULFILLED}`;
+    for (let page = 0; pageUrl && page < 10; page++) {
+      const ordersRes = await fetch(pageUrl, { headers });
+      if (!ordersRes.ok) {
+        const err = await ordersRes.json().catch(() => ({}));
+        throw new Error(`Orders API failed (${ordersRes.status}): ${JSON.stringify(err.errors?.[0] || err)}`);
+      }
+      const ordersData = await ordersRes.json();
+      orders.push(...(ordersData.orders || []));
+      pageUrl = ordersData.next || null;
     }
-
-    const ordersData = await ordersRes.json();
-    const orders = ordersData.orders || [];
 
     // Build a map: listingId → { qtySold, orders[] }
     const soldMap = {};
@@ -62,7 +71,6 @@ exports.handler = async (event) => {
         soldMap[legacyItemId].qtySold += lineItem.quantity || 1;
         soldMap[legacyItemId].orders.push({
           orderId:       order.orderId,
-          buyerUsername: order.buyer?.username || 'unknown',
           createdAt:     order.creationDate,
           status:        order.orderFulfillmentStatus,
           qty:           lineItem.quantity || 1,

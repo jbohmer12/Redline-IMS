@@ -2,6 +2,10 @@
 // The callback (ebay-callback.js) detects this and shows tokens instead of redirecting to app
 
 exports.handler = async (event) => {
+  // Off unless EBAY_TOKEN_GEN_ENABLED=true is set in Netlify (turn it on only while generating a token).
+  if (process.env.EBAY_TOKEN_GEN_ENABLED !== 'true') {
+    return { statusCode: 404, body: 'Not found' };
+  }
   const clientId = process.env.EBAY_PROD_CLIENT_ID;
   const ruName   = process.env.EBAY_PROD_RUNAME;
 
