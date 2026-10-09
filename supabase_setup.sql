@@ -90,13 +90,14 @@ create index if not exists activity_log_part_idx  on public.activity_log(part_id
 create index if not exists activity_log_time_idx  on public.activity_log(created_at desc);
 
 -- ============================================================
--- ROLES — set in Supabase Dashboard → Authentication → Users
--- Edit each user's raw_user_meta_data in the Supabase Table Editor:
+-- ROLES — stored in app_metadata (users can't edit it themselves).
+-- After this file, ALSO run supabase/migrations/20261008_roles_and_rls.sql,
+-- which tightens the policies above and enforces roles in the database.
 --   {"role": "admin"}   — full access
 --   {"role": "logger"}  — data entry only
 --
--- Or run SQL like:
---   update auth.users set raw_user_meta_data = raw_user_meta_data || '{"role":"admin"}'
+-- Set a role with SQL:
+--   update auth.users set raw_app_meta_data = raw_app_meta_data || '{"role":"admin"}'
 --   where email = 'your@email.com';
 -- ============================================================
 
@@ -117,7 +118,7 @@ create policy "Authenticated upload parts photos"
 
 -- ============================================================
 -- DONE. Next steps:
--- 1. Authentication → Users → set role in raw_user_meta_data
+-- 1. Run supabase/migrations/20261008_roles_and_rls.sql, then set roles in raw_app_meta_data
 -- 2. Deploy zip to Netlify
 -- 3. Sign in — role is read automatically on login
 -- ============================================================

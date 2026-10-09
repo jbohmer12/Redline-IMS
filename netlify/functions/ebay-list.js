@@ -1,6 +1,7 @@
-const { getValidToken } = require('./ebay-refresh');
+const { getValidToken } = require('../lib/ebay-refresh');
 
 // Known non-leaf (parent) category IDs in eBay Motors tree 100 — never use these
+const { requireUser } = require('../lib/auth');
 const PARENT_CATEGORY_IDS = new Set([
   '6028',  // Parts & Accessories
   '10063', // Exhaust & Exhaust Systems (parent)
@@ -17,6 +18,10 @@ const PARENT_CATEGORY_IDS = new Set([
 ]);
 
 exports.handler = async (event) => {
+  // Signed-in users only (admins); see netlify/lib/auth.js
+  const auth = await requireUser(event, { role: 'admin' });
+  if (auth.error) return auth.error;
+
   if (event.httpMethod !== 'POST') return { statusCode: 405, body: 'Method Not Allowed' };
 
   let body;

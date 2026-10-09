@@ -2,11 +2,16 @@
 // Scans the ridersmiamiadventuremoto eBay store and returns all active listings.
 // The frontend matches these against existing parts by OEM/title and updates ebayStatus.
 
-const { getValidToken } = require('./ebay-refresh');
+const { getValidToken } = require('../lib/ebay-refresh');
 
+const { requireUser } = require('../lib/auth');
 const SELLER = 'ridersmiamiadventuremoto';
 
 exports.handler = async (event) => {
+  // Signed-in users only (admins); see netlify/lib/auth.js
+  const auth = await requireUser(event, { role: 'admin' });
+  if (auth.error) return auth.error;
+
   if (event.httpMethod !== 'GET') return { statusCode: 405, body: 'Method Not Allowed' };
 
   let token;

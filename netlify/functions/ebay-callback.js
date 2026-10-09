@@ -55,11 +55,15 @@ exports.handler = async (event) => {
       return redirect(`/?ebay_error=${encodeURIComponent(data.error_description || 'Token exchange failed')}`);
     }
 
-    // Token generation mode — show tokens on screen
+    // Token generation mode — show tokens on screen.
+    // Off unless EBAY_TOKEN_GEN_ENABLED=true is set in Netlify (turn it on only while generating a token).
     if (isTokenGen) {
+      if (process.env.EBAY_TOKEN_GEN_ENABLED !== 'true') {
+        return redirect('/?ebay_error=' + encodeURIComponent('Token generation is turned off on this site.'));
+      }
       return {
         statusCode: 200,
-        headers: { 'Content-Type': 'text/html' },
+        headers: { 'Content-Type': 'text/html', 'Cache-Control': 'no-store', 'Referrer-Policy': 'no-referrer' },
         body: `<html><body style="font-family:sans-serif;padding:20px;background:#111;color:#fff;max-width:700px;margin:0 auto;">
           <h2>✓ eBay Tokens Generated</h2>
           <p style="color:#aaa">Add these to <a href="https://app.netlify.com" target="_blank" style="color:#e53238;">Netlify → Environment Variables</a> then redeploy:</p>
@@ -75,18 +79,13 @@ exports.handler = async (event) => {
       };
     }
 
-    // Normal app auth mode — pass token back to app
-    const tokenPayload = encodeURIComponent(JSON.stringify({
-      access_token:  data.access_token,
-      refresh_token: data.refresh_token,
-      expires_in:    data.expires_in,
-      env
-    }));
-
-    return redirect(`/?ebay_token=${tokenPayload}`);
+    // Normal app auth mode. Tokens are never put in the URL (they'd land in browser history
+    // and logs). The app's eBay calls use the server-side EBAY_REFRESH_TOKEN instead.
+    return redirect(`/?ebay_connected=${encodeURIComponent(env)}`);
 
   } catch (err) {
-    return redirect(`/?ebay_error=${encodeURIComponent(err.message)}`);
+    console.error('ebay-callback error:', err);
+    return redirect('/?ebay_error=' + encodeURIComponent('eBay sign-in failed. Try again.'));
   }
 };
 

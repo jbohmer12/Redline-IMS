@@ -1,8 +1,9 @@
 // market-scout.js — V5
 // Returns verified-active listings with sold count, listing age, and active status.
 
-const { getValidToken } = require('./ebay-refresh');
+const { getValidToken } = require('../lib/ebay-refresh');
 
+const { requireUser } = require('../lib/auth');
 const CATEGORY_MAP = {
   all:        null,
   exhaust:    '10063',
@@ -80,6 +81,10 @@ async function verifyItem(itemId, headers) {
 }
 
 exports.handler = async (event) => {
+  // Signed-in users only (admins); see netlify/lib/auth.js
+  const auth = await requireUser(event, { role: 'admin' });
+  if (auth.error) return auth.error;
+
   if (event.httpMethod !== 'POST') {
     return { statusCode: 405, body: 'Method Not Allowed' };
   }

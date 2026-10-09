@@ -2,9 +2,14 @@
 // Usage: /.netlify/functions/ebay-cats?q=motorcycle+rear+fender+assembly
 // Shows top suggestions from tree 100 (eBay Motors) — same tree used by ebay-list.js
 
-const { getValidToken } = require('./ebay-refresh');
+const { getValidToken } = require('../lib/ebay-refresh');
 
+const { requireUser } = require('../lib/auth');
 exports.handler = async (event) => {
+  // Signed-in users only (admins); see netlify/lib/auth.js
+  const auth = await requireUser(event, { role: 'admin' });
+  if (auth.error) return auth.error;
+
   const q = event.queryStringParameters?.q || 'motorcycle parts';
   let token;
   try { token = await getValidToken(); } catch(e) {
