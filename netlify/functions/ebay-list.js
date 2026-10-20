@@ -225,8 +225,8 @@ async function ensureMerchantLocation(BASE, headers) {
     method: 'POST', headers,
     body: JSON.stringify({
       location: { address: { addressLine1: '1000 NW 57th Ct', city: 'Miami', stateOrProvince: 'FL', postalCode: '33126', country: 'US' } },
-      locationInstructions: 'Riders Miami Motorsports',
-      name: 'Riders Miami Warehouse',
+      locationInstructions: 'Warehouse',
+      name: 'Parts Warehouse',
       merchantLocationStatus: 'ENABLED',
       locationTypes: ['WAREHOUSE']
     })
