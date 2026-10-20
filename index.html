@@ -1120,25 +1120,7 @@
 
   </div>
 
-  <!-- DB config (hidden when hardcoded, shown as fallback) -->
-  <div id="db-config-section" style="margin-top:32px;width:100%;max-width:360px;">
-    <div onclick="toggleDbConfig()" style="font-family:var(--font-display),sans-serif;font-size:12px;letter-spacing:2px;color:var(--muted);text-transform:uppercase;cursor:pointer;text-align:center;margin-bottom:8px;">
-      ⚙ Database Settings <span id="db-config-arrow">▼</span>
-    </div>
-    <div id="db-config-panel" style="display:none;display:flex;flex-direction:column;gap:8px;">
-      <input type="text" id="sb-url-input" placeholder="Supabase Project URL (https://xxxx.supabase.co)"
-        style="background:#0d0d0d;border:1px solid #333;color:#aaa;-webkit-text-fill-color:#aaa;padding:10px 12px;font-family:monospace;font-size:12px;outline:none;-webkit-appearance:none;border-radius:0;width:100%;">
-      <input type="text" id="sb-key-input" placeholder="Supabase anon public key"
-        style="background:#0d0d0d;border:1px solid #333;color:#aaa;-webkit-text-fill-color:#aaa;padding:10px 12px;font-family:monospace;font-size:12px;outline:none;-webkit-appearance:none;border-radius:0;width:100%;">
-      <button onclick="saveDbConfig()"
-        style="background:transparent;border:1px solid var(--border);color:var(--muted);padding:8px;font-family:var(--font-display),sans-serif;font-size:14px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;width:100%;">
-        SAVE & CONNECT
-      </button>
-      <div style="font-size:10px;color:var(--muted);font-family:var(--font-display),sans-serif;text-align:center;line-height:1.5;">
-        Get these from your Supabase project → Settings → API
-      </div>
-    </div>
-  </div>
+
 </div>
 
 <div class="nav-tabs">
@@ -1805,9 +1787,9 @@ let scanner = null;
 
 // ===== SUPABASE CONFIG =====
 // Set these once before deploying — users won't need to enter them
-const SUPABASE_URL = '';  // Set via Netlify environment variable or localStorage
+const SUPABASE_URL = 'https://jspnycqscqvkifszyygn.supabase.co';
 const ANTHROPIC_API_KEY = '';
-const SUPABASE_ANON_KEY = '';  // Set via Netlify environment variable or localStorage  // your anon public key
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpzcG55Y3FzY3F2a2lmc3p5eWduIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwNzg1ODAsImV4cCI6MjA5NTY1NDU4MH0.Ql08Wjb4RgcD5R3EnnefXFjaEFR4mUH5HLvnXjA6-sA';  // your anon public key
 
 // ===== SUPABASE =====
 let sb = null;
