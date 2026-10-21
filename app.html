@@ -3831,11 +3831,13 @@ function startEbaySyncPolling() {
 
 // ===== INIT =====
 (async () => {
-  // Pre-fill saved DB config
+  // Pre-fill saved DB config (elements may not exist if panel was removed)
   const savedUrl = localStorage.getItem('sb_url') || '';
   const savedKey = localStorage.getItem('sb_key') || '';
-  document.getElementById('sb-url-input').value = savedUrl;
-  document.getElementById('sb-key-input').value = savedKey;
+  const sbUrlEl = document.getElementById('sb-url-input');
+  const sbKeyEl = document.getElementById('sb-key-input');
+  if (sbUrlEl) sbUrlEl.value = savedUrl;
+  if (sbKeyEl) sbKeyEl.value = savedKey;
 
   // Hide DB settings panel if config is hardcoded
   if (ANTHROPIC_API_KEY) {
