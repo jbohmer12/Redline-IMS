@@ -37,7 +37,7 @@ Identify the part and return ONLY a JSON object (no markdown, no explanation) wi
   "notes": "Brief technical description of the part and its function"
 }
 
-If you cannot identify the part with confidence, return: {"error": "Part not found"}`;
+If you cannot identify the part with confidence, still try your best guess and set a "confidence": "low" field. Only return {"error": "Part not found"} if you have absolutely no information about this part number.`;
 
   try {
     const res = await fetch('https://api.anthropic.com/v1/messages', {
@@ -48,7 +48,7 @@ If you cannot identify the part with confidence, return: {"error": "Part not fou
         'anthropic-version': '2023-06-01',
       },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-6',
+        model: 'claude-opus-4-5',
         max_tokens: 500,
         messages: [{ role: 'user', content: prompt }],
       }),
