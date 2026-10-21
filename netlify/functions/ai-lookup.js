@@ -34,8 +34,11 @@ Identify the part and return ONLY a JSON object (no markdown, no explanation) wi
   "model": "Specific model(s) this fits",
   "year": "Year range (e.g. 2019-2022)",
   "category": "One of: Engine, Suspension, Brakes, Electrical, Body/Fairings, Exhaust, Drivetrain, Frame/Chassis, Accessories, Other",
+  "price_usd": 0,
   "notes": "Brief technical description of the part and its function"
 }
+
+For price_usd: estimate the typical used/aftermarket retail price in USD based on your knowledge of this part type. Use a realistic number — not MSRP, but what a dealer would realistically sell it for used. If unsure, use 0.
 
 If you cannot identify the part with confidence, still try your best guess and set a "confidence": "low" field. Only return {"error": "Part not found"} if you have absolutely no information about this part number.`;
 
