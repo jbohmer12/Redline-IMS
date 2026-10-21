@@ -676,12 +676,24 @@ footer img{height:38px;opacity:1;}
   <div class="section-inner">
     <span class="eyebrow">Simple Pricing</span>
     <h2>No Hidden Fees. No Contracts.</h2>
-    <p class="section-sub">Cancel any time. Data Logger seats are $19/month each on any plan. Annual billing saves 20%.</p>
+    <p class="section-sub">Cancel any time. Data Logger seats are $19/month each on any plan.</p>
+
+    <!-- Billing toggle -->
+    <div style="display:flex;align-items:center;gap:16px;margin-top:32px;">
+      <span id="toggle-monthly-label" style="font-family:var(--fn);font-size:13px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--dark);">Monthly</span>
+      <div id="billing-toggle" onclick="toggleBilling()" style="width:52px;height:28px;background:var(--accent);border-radius:14px;cursor:pointer;position:relative;transition:background 0.2s;flex-shrink:0;">
+        <div id="toggle-knob" style="position:absolute;top:4px;left:4px;width:20px;height:20px;background:#fff;border-radius:50%;transition:transform 0.2s;"></div>
+      </div>
+      <span id="toggle-yearly-label" style="font-family:var(--fn);font-size:13px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);">
+        Yearly <span style="background:var(--green);color:#fff;font-size:10px;padding:2px 8px;border-radius:10px;margin-left:4px;letter-spacing:1px;">SAVE 20%</span>
+      </span>
+    </div>
     <div class="pricing-grid">
 
       <div class="plan">
         <div class="plan-name">Starter</div>
-        <div class="plan-price"><sup>$</sup>49<sub>/mo</sub></div>
+        <div class="plan-price"><sup>$</sup><span class="price-val" data-monthly="49" data-yearly="39">49</span><sub>/mo</sub></div>
+        <div class="plan-save" style="display:none;font-family:var(--fn);font-size:11px;color:var(--green);letter-spacing:1px;text-transform:uppercase;margin-bottom:4px;">Billed $468/yr — save $120</div>
         <div class="plan-desc">Solo sellers and small operations getting started with eBay.</div>
         <div class="plan-divider"></div>
         <ul class="plan-features">
@@ -700,7 +712,8 @@ footer img{height:38px;opacity:1;}
       <div class="plan featured">
         <div class="plan-badge">Most Popular</div>
         <div class="plan-name">Pro</div>
-        <div class="plan-price"><sup>$</sup>99<sub>/mo</sub></div>
+        <div class="plan-price"><sup>$</sup><span class="price-val" data-monthly="99" data-yearly="79">99</span><sub>/mo</sub></div>
+        <div class="plan-save" style="display:none;font-family:var(--fn);font-size:11px;color:var(--green);letter-spacing:1px;text-transform:uppercase;margin-bottom:4px;">Billed $948/yr — save $240</div>
         <div class="plan-desc">The complete toolkit for dealership parts departments.</div>
         <div class="plan-divider"></div>
         <ul class="plan-features">
@@ -718,7 +731,8 @@ footer img{height:38px;opacity:1;}
 
       <div class="plan">
         <div class="plan-name">Enterprise</div>
-        <div class="plan-price"><sup>$</sup>249<sub>/mo</sub></div>
+        <div class="plan-price"><sup>$</sup><span class="price-val" data-monthly="249" data-yearly="199">249</span><sub>/mo</sub></div>
+        <div class="plan-save" style="display:none;font-family:var(--fn);font-size:11px;color:var(--green);letter-spacing:1px;text-transform:uppercase;margin-bottom:4px;">Billed $2,388/yr — save $600</div>
         <div class="plan-desc">Multi-location groups and high-volume parts operations.</div>
         <div class="plan-divider"></div>
         <ul class="plan-features">
@@ -817,6 +831,27 @@ footer img{height:38px;opacity:1;}
 </footer>
 
 <script>
+let billingYearly = false;
+function toggleBilling() {
+  billingYearly = !billingYearly;
+  const knob = document.getElementById('toggle-knob');
+  const monthlyLabel = document.getElementById('toggle-monthly-label');
+  const yearlyLabel = document.getElementById('toggle-yearly-label');
+  const toggle = document.getElementById('billing-toggle');
+
+  knob.style.transform = billingYearly ? 'translateX(24px)' : 'translateX(0)';
+  toggle.style.background = billingYearly ? '#1a9e50' : 'var(--accent)';
+  monthlyLabel.style.color = billingYearly ? 'var(--muted)' : 'var(--dark)';
+  yearlyLabel.style.color = billingYearly ? 'var(--dark)' : 'var(--muted)';
+
+  document.querySelectorAll('.price-val').forEach(el => {
+    el.textContent = billingYearly ? el.dataset.yearly : el.dataset.monthly;
+  });
+  document.querySelectorAll('.plan-save').forEach(el => {
+    el.style.display = billingYearly ? 'block' : 'none';
+  });
+}
+
 document.querySelectorAll('.faq-item').forEach(item => {
   item.querySelector('.faq-q').addEventListener('click', () => {
     const isOpen = item.classList.contains('open');
