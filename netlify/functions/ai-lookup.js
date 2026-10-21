@@ -1,7 +1,6 @@
-// ai-lookup.js
-// Server-side proxy for Anthropic API — keeps the key out of the browser
-// POST /.netlify/functions/ai-lookup
-// Body: { oem: "part-number", existingParts: [...] }
+// ai-lookup.js v3
+// Server-side proxy for Anthropic API with web search tool
+// Looks up real-time part data instead of relying on training data alone
 
 exports.handler = async (event) => {
   if (event.httpMethod !== 'POST') {
@@ -20,27 +19,33 @@ exports.handler = async (event) => {
   try { body = JSON.parse(event.body); }
   catch { return { statusCode: 400, body: JSON.stringify({ error: 'Invalid JSON' }) }; }
 
-  const { oem, existingParts = [] } = body;
+  const { oem, isAssembly } = body;
   if (!oem) {
     return { statusCode: 400, body: JSON.stringify({ error: 'Missing oem field' }) };
   }
 
-  const prompt = `You are a motorcycle parts expert. Given this OEM/part number: "${oem}"
+  const prompt = `Search for the motorcycle OEM part number: "${oem}"
 
-Identify the part and return ONLY a JSON object (no markdown, no explanation) with these fields:
+Use web search to find the exact part. Look for:
+1. What part this number refers to (exact name)
+2. Which motorcycle make, model, and year it fits
+3. Current market price (retail or used dealer price in USD)
+
+Then return ONLY a JSON object with no markdown or explanation:
 {
-  "name": "Full descriptive part name",
-  "make": "Manufacturer (e.g. Honda, Yamaha, Kawasaki, Suzuki, Ducati, BMW, KTM)",
+  "name": "Exact part name from manufacturer",
+  "make": "Manufacturer brand (Honda, Yamaha, Ducati, etc.)",
   "model": "Specific model(s) this fits",
   "year": "Year range (e.g. 2019-2022)",
   "category": "One of: Engine, Suspension, Brakes, Electrical, Body/Fairings, Exhaust, Drivetrain, Frame/Chassis, Accessories, Other",
   "price_usd": 0,
-  "notes": "Brief technical description of the part and its function"
+  "notes": "Brief description of what this part is and what it does",
+  "confidence": "high"
 }
 
-For price_usd: estimate the typical used/aftermarket retail price in USD based on your knowledge of this part type. Use a realistic number — not MSRP, but what a dealer would realistically sell it for used. If unsure, use 0.
-
-If you cannot identify the part with confidence, still try your best guess and set a "confidence": "low" field. Only return {"error": "Part not found"} if you have absolutely no information about this part number.`;
+For price_usd: use the actual retail or used market price you find. If the part is used/aftermarket, estimate 40-60% of retail. If you find no price, use 0.
+Set confidence to "high" if web search confirmed the part, "medium" if partially confirmed, "low" if guessing.
+If you truly cannot find any information, return: {"error": "Part not found"}`;
 
   try {
     const res = await fetch('https://api.anthropic.com/v1/messages', {
@@ -52,23 +57,45 @@ If you cannot identify the part with confidence, still try your best guess and s
       },
       body: JSON.stringify({
         model: 'claude-opus-4-5',
-        max_tokens: 500,
+        max_tokens: 1024,
+        tools: [
+          {
+            type: 'web_search_20250305',
+            name: 'web_search',
+          }
+        ],
         messages: [{ role: 'user', content: prompt }],
       }),
     });
 
     if (!res.ok) {
       const err = await res.text();
-      return { statusCode: res.status, body: JSON.stringify({ error: 'Anthropic API error', detail: err }) };
+      return {
+        statusCode: res.status,
+        body: JSON.stringify({ error: 'Anthropic API error', detail: err })
+      };
     }
 
     const data = await res.json();
-    const text = data.content?.[0]?.text || '';
+
+    // Extract text from response — may be after tool use blocks
+    const textBlocks = (data.content || []).filter(b => b.type === 'text');
+    const text = textBlocks.map(b => b.text).join('');
+
+    if (!text) {
+      return {
+        statusCode: 200,
+        body: JSON.stringify({ error: 'No response from AI' })
+      };
+    }
 
     // Parse JSON from response
     const jsonMatch = text.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
-      return { statusCode: 200, body: JSON.stringify({ error: 'Could not parse response' }) };
+      return {
+        statusCode: 200,
+        body: JSON.stringify({ error: 'Could not parse response' })
+      };
     }
 
     const result = JSON.parse(jsonMatch[0]);
@@ -79,6 +106,9 @@ If you cannot identify the part with confidence, still try your best guess and s
     };
 
   } catch (err) {
-    return { statusCode: 500, body: JSON.stringify({ error: err.message }) };
+    return {
+      statusCode: 500,
+      body: JSON.stringify({ error: err.message })
+    };
   }
 };

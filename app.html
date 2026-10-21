@@ -1149,6 +1149,8 @@
   <div class="nav-tab" onclick="switchView('log')" id="tab-log" style="display:none;">
     ⊟ Activity Log
   </div>
+  <div class="nav-tab" onclick="signOut()" id="tab-signout" style="display:none;margin-left:auto;color:var(--accent);">⏻ Sign Out
+  </div>
 </div>
 
 <main>
@@ -1945,6 +1947,10 @@ async function onAuthSuccess() {
   document.getElementById('auth-screen').style.display = 'none';
   const backLink = document.getElementById('back-to-landing');
   if (backLink) backLink.style.display = 'none';
+  const _so = document.getElementById('tab-signout');
+  if (_so) _so.style.display = '';
+  const signoutTab = document.getElementById('tab-signout');
+  if (signoutTab) signoutTab.style.display = '';
   document.getElementById('user-stat').style.display   = 'flex';
   document.getElementById('user-email-label').textContent = currentUser.email;
   setDbStatus('syncing');
